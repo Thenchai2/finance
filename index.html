@@ -935,6 +935,32 @@
                     </button>
                 </div>
                 
+                <!-- แถบตัวกรองและค้นหา (Filter & Search Bar) -->
+                <div class="bg-gray-800/50 rounded-xl p-4 mb-6 border border-gray-700/50 flex flex-wrap gap-4 items-end backdrop-blur-sm">
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs font-semibold text-gray-400 mb-1.5"><i class="fa-solid fa-user mr-1 text-blue-400"></i> ค้นหาผู้ขอเบิก/รับเงิน</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" id="downloadSearchName" oninput="filterDownloadTable()" placeholder="พิมพ์ชื่อเพื่อค้นหา..." class="w-full bg-gray-900/60 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-500">
+                        </div>
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <label class="block text-xs font-semibold text-gray-400 mb-1.5"><i class="fa-solid fa-calendar-days mr-1 text-blue-400"></i> วันที่เริ่ม</label>
+                        <input type="date" id="downloadStartDate" onchange="filterDownloadTable()" class="w-full sm:w-44 bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all select-none">
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <label class="block text-xs font-semibold text-gray-400 mb-1.5"><i class="fa-solid fa-calendar-days mr-1 text-blue-400"></i> วันที่ถึง</label>
+                        <input type="date" id="downloadEndDate" onchange="filterDownloadTable()" class="w-full sm:w-44 bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all select-none">
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <button onclick="clearDownloadFilters()" class="w-full sm:w-auto px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-rotate-left"></i> ล้างตัวกรอง
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="bg-gray-800/80 rounded-xl shadow-lg border border-gray-700/50 overflow-hidden backdrop-blur-sm">
                     <div class="overflow-x-auto w-full custom-scrollbar">
                         <table class="w-full text-left border-collapse">
@@ -1042,6 +1068,32 @@
                     <button onclick="loadHistory()" class="text-sm text-blue-400 hover:text-blue-300 flex items-center bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
                         <i class="fa-solid fa-rotate mr-2"></i> รีเฟรชข้อมูล
                     </button>
+                </div>
+                
+                <!-- แถบตัวกรองและค้นหา (Filter & Search Bar) -->
+                <div class="bg-gray-800/50 rounded-xl p-4 mb-6 border border-gray-700/50 flex flex-wrap gap-4 items-end backdrop-blur-sm">
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs font-semibold text-gray-400 mb-1.5"><i class="fa-solid fa-user mr-1 text-green-400"></i> ค้นหาผู้ขอเบิก/รับเงิน</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" id="budgetSearchName" oninput="filterBudgetTable()" placeholder="พิมพ์ชื่อเพื่อค้นหา..." class="w-full bg-gray-900/60 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all placeholder-gray-500">
+                        </div>
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <label class="block text-xs font-semibold text-gray-400 mb-1.5"><i class="fa-solid fa-calendar-days mr-1 text-green-400"></i> วันที่เริ่ม</label>
+                        <input type="date" id="budgetStartDate" onchange="filterBudgetTable()" class="w-full sm:w-44 bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all select-none">
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <label class="block text-xs font-semibold text-gray-400 mb-1.5"><i class="fa-solid fa-calendar-days mr-1 text-green-400"></i> วันที่ถึง</label>
+                        <input type="date" id="budgetEndDate" onchange="filterBudgetTable()" class="w-full sm:w-44 bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all select-none">
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <button onclick="clearBudgetFilters()" class="w-full sm:w-auto px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-rotate-left"></i> ล้างตัวกรอง
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="bg-gray-800/80 rounded-xl shadow-lg border border-gray-700/50 overflow-hidden backdrop-blur-sm">
@@ -1280,7 +1332,7 @@
         async function doLogin(e) {
             e.preventDefault();
             const btn = document.getElementById('btnLogin');
-            const email = document.getElementById('logEmail').value;
+            const email = (document.getElementById('logEmail').value || '').trim();
             const password = document.getElementById('logPassword').value;
 
             btn.disabled = true;
@@ -1330,7 +1382,7 @@
                 action: 'register',
                 firstName: document.getElementById('regFirstName').value,
                 lastName: document.getElementById('regLastName').value,
-                email: document.getElementById('regEmail').value,
+                email: (document.getElementById('regEmail').value || '').trim(),
                 phone: document.getElementById('regPhone').value,
                 department: document.getElementById('regDepartment').value,
                 address: document.getElementById('regAddress').value,
@@ -3402,6 +3454,7 @@
         let currentPageHistory = 1;
         let currentPageEdit = 1;
         let currentPageBudget = 1;
+        let currentPageDownload = 1;
         const itemsPerPageHistory = 10;
 
         async function loadHistory() {
@@ -3461,6 +3514,19 @@
                     currentPageHistory = 1; 
                     currentPageEdit = 1;
                     currentPageBudget = 1;
+                    currentPageDownload = 1;
+
+                    window.filteredDownloadData = window.filteredHistoryData || [];
+                    window.filteredBudgetData = null;
+
+                    // รีเซ็ตตัวกรองการค้นหาเมื่อโหลดใหม่
+                    if (document.getElementById('downloadSearchName')) document.getElementById('downloadSearchName').value = '';
+                    if (document.getElementById('downloadStartDate')) document.getElementById('downloadStartDate').value = '';
+                    if (document.getElementById('downloadEndDate')) document.getElementById('downloadEndDate').value = '';
+                    if (document.getElementById('budgetSearchName')) document.getElementById('budgetSearchName').value = '';
+                    if (document.getElementById('budgetStartDate')) document.getElementById('budgetStartDate').value = '';
+                    if (document.getElementById('budgetEndDate')) document.getElementById('budgetEndDate').value = '';
+
                     renderTables();
                     
                     const approveTbody = document.getElementById('approveTableBody');
@@ -3469,6 +3535,8 @@
                 } else {
                     window.appHistoryData = [];
                     window.filteredHistoryData = [];
+                    window.filteredDownloadData = [];
+                    window.filteredBudgetData = null;
                     updateSidebarBadges([], []);
                     renderEmptyState();
                     const approveTbody = document.getElementById('approveTableBody');
@@ -3680,25 +3748,21 @@
         }
 
         function renderTables() {
-            renderHistoryAndDownloadTables();
+            renderHistoryTable();
+            renderDownloadTable();
             renderEditTable();
         }
 
-        function renderHistoryAndDownloadTables() {
+        function renderHistoryTable() {
             const historyTbody = document.getElementById('historyTableBody');
-            const downloadTbody = document.getElementById('downloadTableBody');
             if (historyTbody) historyTbody.innerHTML = '';
-            if (downloadTbody) downloadTbody.innerHTML = '';
 
             const historyData = window.filteredHistoryData || [];
             if (historyData.length === 0) {
                 const emptyHtml = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลประวัติ</td></tr>`;
                 if (historyTbody) historyTbody.innerHTML = emptyHtml;
-                if (downloadTbody) downloadTbody.innerHTML = emptyHtml;
-                ['historyPagination', 'downloadPagination'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.innerHTML = '';
-                });
+                const el = document.getElementById('historyPagination');
+                if (el) el.innerHTML = '';
                 return;
             }
 
@@ -3716,6 +3780,36 @@
                     trHist.innerHTML = trHtml;
                     historyTbody.appendChild(trHist);
                 }
+            });
+
+            renderPaginationControls('history');
+        }
+
+        function renderDownloadTable() {
+            const downloadTbody = document.getElementById('downloadTableBody');
+            if (downloadTbody) downloadTbody.innerHTML = '';
+
+            const downloadData = window.filteredDownloadData || [];
+            if (downloadData.length === 0) {
+                const isFiltered = (document.getElementById('downloadSearchName')?.value || '').trim() !== '' ||
+                                   (document.getElementById('downloadStartDate')?.value || '') !== '' ||
+                                   (document.getElementById('downloadEndDate')?.value || '') !== '';
+                const emptyHtml = isFiltered
+                    ? `<tr><td colspan="7" class="p-8 text-center text-gray-500">ไม่พบข้อมูลที่ตรงกับตัวกรอง</td></tr>`
+                    : `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลดาวน์โหลด</td></tr>`;
+                if (downloadTbody) downloadTbody.innerHTML = emptyHtml;
+                const el = document.getElementById('downloadPagination');
+                if (el) el.innerHTML = '';
+                return;
+            }
+
+            const startIndex = (currentPageDownload - 1) * itemsPerPageHistory;
+            const endIndex = startIndex + itemsPerPageHistory;
+            const pageData = downloadData.slice(startIndex, endIndex);
+
+            pageData.forEach((row) => {
+                const actualIndex = window.appHistoryData.indexOf(row);
+                const trHtml = createRowHtml(row, actualIndex, false);
 
                 if (downloadTbody) {
                     const trDown = document.createElement('tr');
@@ -3725,7 +3819,7 @@
                 }
             });
 
-            renderPaginationControls('history');
+            renderPaginationControls('download');
         }
 
         function renderEditTable() {
@@ -3768,13 +3862,19 @@
             if (type === 'history') {
                 data = window.filteredHistoryData || [];
                 currentPage = currentPageHistory;
-                paginationIds = ['historyPagination', 'downloadPagination'];
+                paginationIds = ['historyPagination'];
+            } else if (type === 'download') {
+                data = window.filteredDownloadData || [];
+                currentPage = currentPageDownload;
+                paginationIds = ['downloadPagination'];
             } else if (type === 'edit') {
                 data = window.filteredEditData || [];
                 currentPage = currentPageEdit;
                 paginationIds = ['editPagination'];
             } else if (type === 'budget') {
-                data = (window.appHistoryData || []).filter(row => row.status === 'อนุมัติแล้ว');
+                data = window.filteredBudgetData !== null 
+                    ? window.filteredBudgetData 
+                    : (window.appHistoryData || []).filter(row => row.status === 'อนุมัติแล้ว');
                 currentPage = currentPageBudget;
                 paginationIds = ['budgetPagination'];
             }
@@ -3819,7 +3919,14 @@
                 const totalPages = Math.ceil(historyData.length / itemsPerPageHistory);
                 if (newPage >= 1 && newPage <= totalPages) {
                     currentPageHistory = newPage;
-                    renderHistoryAndDownloadTables();
+                    renderHistoryTable();
+                }
+            } else if (type === 'download') {
+                const downloadData = window.filteredDownloadData || [];
+                const totalPages = Math.ceil(downloadData.length / itemsPerPageHistory);
+                if (newPage >= 1 && newPage <= totalPages) {
+                    currentPageDownload = newPage;
+                    renderDownloadTable();
                 }
             } else if (type === 'edit') {
                 const editData = window.filteredEditData || [];
@@ -3829,7 +3936,9 @@
                     renderEditTable();
                 }
             } else if (type === 'budget') {
-                const budgetData = (window.appHistoryData || []).filter(row => row.status === 'อนุมัติแล้ว');
+                const budgetData = window.filteredBudgetData !== null 
+                    ? window.filteredBudgetData 
+                    : (window.appHistoryData || []).filter(row => row.status === 'อนุมัติแล้ว');
                 const totalPages = Math.ceil(budgetData.length / itemsPerPageHistory);
                 if (newPage >= 1 && newPage <= totalPages) {
                     currentPageBudget = newPage;
@@ -4147,9 +4256,15 @@
                 return;
             }
             
-            const approvedRows = window.appHistoryData.filter(row => row.status === 'อนุมัติแล้ว');
+            const approvedRows = window.filteredBudgetData !== null 
+                ? window.filteredBudgetData 
+                : (window.appHistoryData || []).filter(row => row.status === 'อนุมัติแล้ว');
+
             if (approvedRows.length === 0) {
-                budgetTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีเอกสารที่ได้รับการอนุมัติ</td></tr>`;
+                const message = window.filteredBudgetData !== null 
+                    ? "ไม่พบข้อมูลที่ตรงกับตัวกรอง" 
+                    : "ยังไม่มีเอกสารที่ได้รับการอนุมัติ";
+                budgetTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">${message}</td></tr>`;
                 const el = document.getElementById('budgetPagination');
                 if (el) el.innerHTML = '';
                 return;
@@ -4261,6 +4376,104 @@
             });
             
             renderPaginationControls('budget');
+        }
+
+        function filterDownloadTable() {
+            const searchName = (document.getElementById('downloadSearchName')?.value || '').toLowerCase().trim();
+            const startDateStr = document.getElementById('downloadStartDate')?.value || '';
+            const endDateStr = document.getElementById('downloadEndDate')?.value || '';
+
+            window.filteredDownloadData = (window.filteredHistoryData || []).filter(row => {
+                // 1. Search by Requester/Receiver name
+                const name = (row.name || '').toLowerCase();
+                if (searchName && !name.includes(searchName)) {
+                    return false;
+                }
+
+                // 2. Filter by date range
+                if (startDateStr || endDateStr) {
+                    const rowDateVal = row.timestamp ? new Date(row.timestamp) : (row.date ? new Date(row.date) : null);
+                    if (!rowDateVal || isNaN(rowDateVal.getTime())) {
+                        return false;
+                    }
+                    const y = rowDateVal.getFullYear();
+                    const m = String(rowDateVal.getMonth() + 1).padStart(2, '0');
+                    const d = String(rowDateVal.getDate()).padStart(2, '0');
+                    const rowDateStr = `${y}-${m}-${d}`;
+
+                    if (startDateStr && rowDateStr < startDateStr) {
+                        return false;
+                    }
+                    if (endDateStr && rowDateStr > endDateStr) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            currentPageDownload = 1;
+            renderDownloadTable();
+        }
+
+        function clearDownloadFilters() {
+            if (document.getElementById('downloadSearchName')) document.getElementById('downloadSearchName').value = '';
+            if (document.getElementById('downloadStartDate')) document.getElementById('downloadStartDate').value = '';
+            if (document.getElementById('downloadEndDate')) document.getElementById('downloadEndDate').value = '';
+
+            window.filteredDownloadData = window.filteredHistoryData || [];
+            currentPageDownload = 1;
+            renderDownloadTable();
+        }
+
+        function filterBudgetTable() {
+            const searchName = (document.getElementById('budgetSearchName')?.value || '').toLowerCase().trim();
+            const startDateStr = document.getElementById('budgetStartDate')?.value || '';
+            const endDateStr = document.getElementById('budgetEndDate')?.value || '';
+
+            const allApproved = (window.appHistoryData || []).filter(row => row.status === 'อนุมัติแล้ว');
+
+            window.filteredBudgetData = allApproved.filter(row => {
+                // 1. Search by Requester/Receiver name
+                const name = (row.name || '').toLowerCase();
+                if (searchName && !name.includes(searchName)) {
+                    return false;
+                }
+
+                // 2. Filter by date range
+                if (startDateStr || endDateStr) {
+                    const rowDateVal = row.timestamp ? new Date(row.timestamp) : (row.date ? new Date(row.date) : null);
+                    if (!rowDateVal || isNaN(rowDateVal.getTime())) {
+                        return false;
+                    }
+                    const y = rowDateVal.getFullYear();
+                    const m = String(rowDateVal.getMonth() + 1).padStart(2, '0');
+                    const d = String(rowDateVal.getDate()).padStart(2, '0');
+                    const rowDateStr = `${y}-${m}-${d}`;
+
+                    if (startDateStr && rowDateStr < startDateStr) {
+                        return false;
+                    }
+                    if (endDateStr && rowDateStr > endDateStr) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            currentPageBudget = 1;
+            renderBudgetTable();
+        }
+
+        function clearBudgetFilters() {
+            if (document.getElementById('budgetSearchName')) document.getElementById('budgetSearchName').value = '';
+            if (document.getElementById('budgetStartDate')) document.getElementById('budgetStartDate').value = '';
+            if (document.getElementById('budgetEndDate')) document.getElementById('budgetEndDate').value = '';
+
+            window.filteredBudgetData = null;
+            currentPageBudget = 1;
+            renderBudgetTable();
         }
 
         async function uploadBudgetFile(timestamp, fileInput) {
