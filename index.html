@@ -1,0 +1,3249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกใบเคลียร์เงิน</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Prompt & Saraban (for official documents) -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+        }
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; 
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1); 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563; 
+            border-radius: 10px;
+        }
+
+        /* A4 Paper Styling for Preview */
+        .a4-wrapper {
+            overflow-x: auto;
+            padding: 20px 0;
+            background-color: #111827;
+        }
+        .a4-paper {
+            width: 794px; /* A4 width at 96 DPI */
+            min-height: 1123px; /* A4 height at 96 DPI */
+            background-color: white;
+            color: black;
+            margin: 0 auto;
+            padding: 50px 60px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+            font-family: 'Sarabun', sans-serif; /* Use Sarabun for official look */
+            font-size: 15px;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Official Table Styles */
+        .official-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            table-layout: fixed;
+        }
+        .official-table th, .official-table td {
+            border: 1px solid #000;
+            padding: 4px 8px;
+            vertical-align: top;
+        }
+        .official-table th {
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .desc-col {
+            font-size: 13px;
+            line-height: 1.3;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .fill-line {
+            display: inline-block;
+            border-bottom: 1px dotted #000;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        /* Rich Menu Card Styles */
+        .rich-menu-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem 1.5rem;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid #334155;
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .rich-menu-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.08));
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .rich-menu-card:hover::before { opacity: 1; }
+        .rich-menu-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(59,130,246,0.2);
+        }
+        .rich-menu-card.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #1e3a5f, #0f172a);
+            box-shadow: 0 8px 25px rgba(59,130,246,0.25);
+        }
+        .rich-panel {
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        .rich-panel.open { display: block; }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Signature Canvas */
+        #signatureCanvas, #modalSignatureCanvas {
+            background-color: white;
+            border-radius: 0.5rem;
+            cursor: crosshair;
+            touch-action: none; /* Prevent scrolling while drawing on mobile */
+        }
+
+        /* === Success Popup Modal === */
+        #successPopup {
+            position: fixed; inset: 0; z-index: 10000;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #successPopup.show {
+            opacity: 1; pointer-events: all;
+        }
+        .popup-card {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 20px;
+            padding: 48px 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: scale(0.85) translateY(20px);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+        }
+        #successPopup.show .popup-card {
+            transform: scale(1) translateY(0);
+        }
+        .popup-icon-circle {
+            width: 90px; height: 90px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 40px;
+        }
+        .popup-icon-circle.success {
+            background: rgba(16,185,129,0.15);
+            border: 3px solid #10b981;
+            color: #10b981;
+            animation: popBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+        }
+        .popup-icon-circle.error {
+            background: rgba(239,68,68,0.15);
+            border: 3px solid #ef4444;
+            color: #ef4444;
+            animation: popBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+        }
+        @keyframes popBounce {
+            from { transform: scale(0); }
+            to   { transform: scale(1); }
+        }
+        .popup-progress {
+            height: 4px;
+            background: #374151;
+            border-radius: 2px;
+            margin-top: 28px;
+            overflow: hidden;
+        }
+        .popup-progress-bar {
+            height: 100%;
+            border-radius: 2px;
+            width: 100%;
+            transition: width linear;
+        }
+        .popup-progress-bar.success { background: #10b981; }
+        .popup-progress-bar.error   { background: #ef4444; }
+
+        /* ================================
+           CSS สำหรับการพิมพ์เอกสาร PDF
+           ================================ */
+        @media print {
+            @page { size: A4; margin: 0; }
+            body { 
+                background: white !important; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+                height: auto !important;
+                overflow: visible !important;
+            }
+            
+            body > *:not(#documentPreviewModal) { display: none !important; }
+            
+            #documentPreviewModal { 
+                position: static !important; 
+                display: block !important; 
+                background: white !important; 
+                overflow: visible !important;
+                padding: 0 !important;
+                height: auto !important;
+            }
+
+            #documentPreviewModal > div, 
+            #documentPreviewModal > div > div {
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            #documentPreviewModal button, 
+            #documentPreviewModal .text-center.mb-6.mt-4, 
+            #prev-attachments-area { 
+                display: none !important; 
+            }
+
+            #previewModalContent {
+                display: block !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: white !important;
+                overflow: visible !important;
+                width: 100% !important;
+                gap: 0 !important; 
+            }
+
+            .modal-tpl-view.show {
+                display: block !important; 
+                page-break-after: always !important; 
+                break-after: page !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .modal-tpl-view.show:last-of-type {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+
+            .a4-paper {
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                padding: 15mm 20mm !important; 
+                width: 210mm !important; 
+                min-height: 297mm !important;
+                height: auto !important;
+            }
+            
+            .signature-img-print {
+                position: absolute;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                max-height: 45px;
+                z-index: 10;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen flex overflow-hidden">
+
+    <!-- ======= Auth Overlay (Login / Register) ======= -->
+    <div id="authOverlay" class="fixed inset-0 z-[20000] bg-gray-900/95 flex items-center justify-center p-4 backdrop-blur-md transition-opacity">
+        <div class="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden">
+            
+            <!-- Login Form -->
+            <div id="loginFormContainer" class="p-8 block">
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 text-blue-500 mb-4 shadow-inner">
+                        <i class="fa-solid fa-right-to-bracket text-3xl ml-1"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white tracking-wide">เข้าสู่ระบบ</h2>
+                    <p class="text-gray-400 text-sm mt-2">ระบบบันทึกใบเคลียร์เงิน</p>
+                </div>
+                <form onsubmit="doLogin(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1.5 ml-1">อีเมล</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500">
+                                <i class="fa-solid fa-envelope"></i>
+                            </div>
+                            <input type="email" id="logEmail" required placeholder="your.email@example.com" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1.5 ml-1">รหัสผ่าน</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500">
+                                <i class="fa-solid fa-lock"></i>
+                            </div>
+                            <input type="password" id="logPassword" required placeholder="••••••••" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+                    <button type="submit" id="btnLogin" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition mt-8 shadow-lg shadow-blue-600/30">
+                        <i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> เข้าสู่ระบบ
+                    </button>
+                </form>
+                <div class="text-center mt-8 pt-6 border-t border-gray-700/50">
+                    <p class="text-gray-400 text-sm">
+                        ยังไม่มีบัญชี? <button onclick="showRegisterForm()" class="text-blue-400 hover:text-blue-300 font-medium transition ml-1 py-1 px-2 hover:bg-blue-900/30 rounded-lg">สมัครสมาชิกที่นี่</button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerFormContainer" class="p-8 hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-600/20 border border-green-500/30 text-green-500 mb-4 shadow-inner">
+                        <i class="fa-solid fa-user-plus text-2xl pr-1"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white tracking-wide">สมัครสมาชิก</h2>
+                    <p class="text-gray-400 text-sm mt-2">กรอกข้อมูลเพื่อสร้างบัญชีผู้ใช้งาน</p>
+                </div>
+                <form onsubmit="doRegister(event)" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">ชื่อ</label>
+                            <input type="text" id="regFirstName" required class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">สกุล</label>
+                            <input type="text" id="regLastName" required class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">อีเมล (ใช้เข้าระบบ)</label>
+                        <input type="email" id="regEmail" required class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">เบอร์โทร</label>
+                        <input type="tel" id="regPhone" required class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">แผนก</label>
+                        <input type="text" id="regDepartment" required placeholder="เช่น Laundry Technical" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">ที่อยู่ (ตามบัตรประชาชน)</label>
+                        <textarea id="regAddress" required rows="2" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition custom-scrollbar"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">รหัสผ่าน</label>
+                            <input type="password" id="regPassword" required minlength="6" placeholder="ขั้นต่ำ 6 ตัว" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">ยืนยันรหัสผ่าน</label>
+                            <input type="password" id="regConfirmPassword" required minlength="6" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="btnRegister" class="w-full py-3.5 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold transition mt-6 shadow-lg shadow-green-600/30">
+                        <i class="fa-solid fa-check mr-2"></i> สมัครสมาชิก
+                    </button>
+                </form>
+                <div class="text-center mt-6 pt-6 border-t border-gray-700/50">
+                    <p class="text-gray-400 text-sm">
+                        มีบัญชีอยู่แล้ว? <button onclick="showLoginForm()" class="text-green-400 hover:text-green-300 font-medium transition ml-1 py-1 px-2 hover:bg-green-900/30 rounded-lg">เข้าสู่ระบบ</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======= Signature Required Modal ======= -->
+    <div id="signatureRequiredModal" class="fixed inset-0 z-[10010] hidden flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl relative w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-gray-700 bg-gray-900/50 shrink-0">
+                <button onclick="closeSignatureRequiredModal()" class="absolute top-6 right-6 text-gray-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+                <div class="flex items-center text-yellow-500 mb-2">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl mr-3"></i>
+                    <h3 class="text-xl font-bold text-white">จำเป็นต้องมีลายเซ็น</h3>
+                </div>
+                <p class="text-gray-400 text-sm">ระบบตรวจพบว่าคุณยังไม่มีลายเซ็นในระบบ กรุณาเซ็นหรืออัปโหลดรูปภาพเพื่อใช้ประทับลงในเอกสาร</p>
+            </div>
+            
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <!-- Signature Area -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-sm font-bold text-white"><i class="fa-solid fa-pen-nib text-blue-400 mr-2"></i> วาดลายเซ็นของคุณ:</label>
+                        <button type="button" onclick="clearSignatureCanvas()" class="text-xs px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded transition">
+                            <i class="fa-solid fa-eraser mr-1"></i> ล้าง
+                        </button>
+                    </div>
+                    <div class="border-2 border-gray-500 rounded-lg overflow-hidden relative touch-none bg-white">
+                        <canvas id="modalSignatureCanvas" width="400" height="200" class="w-full h-auto cursor-crosshair touch-none"></canvas>
+                    </div>
+                    
+                    <div class="flex items-center justify-center space-x-4 my-2">
+                        <span class="h-px bg-gray-700 flex-1"></span>
+                        <span class="text-gray-500 text-sm font-medium">หรือ</span>
+                        <span class="h-px bg-gray-700 flex-1"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-white mb-2"><i class="fa-solid fa-upload text-green-400 mr-2"></i> อัปโหลดรูปภาพลายเซ็น (กระดาษขาว):</label>
+                        <p class="text-xs text-gray-400 mb-2">ระบบจะตัดพื้นหลังสีขาวออกให้อัตโนมัติ</p>
+                        <input type="file" id="modalSignatureUpload" accept="image/*" class="w-full text-sm text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-gray-700 file:text-white hover:file:bg-gray-600 transition cursor-pointer" onchange="handleModalSignatureUpload(this)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 border-t border-gray-700 bg-gray-900/50 flex justify-end space-x-3 shrink-0">
+                <button type="button" onclick="closeSignatureRequiredModal()" class="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition text-sm">
+                    ยกเลิก
+                </button>
+                <button type="button" id="btnSaveRequiredSignature" onclick="saveSignatureAndSubmit()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition shadow-lg shadow-blue-500/30 flex items-center">
+                    <i class="fa-solid fa-save mr-2"></i> บันทึกและส่งเอกสารต่อ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======= Success/Error Popup Modal ======= -->
+    <div id="successPopup">
+        <div class="popup-card">
+            <div id="popupIconCircle" class="popup-icon-circle success">
+                <i id="popupIcon" class="fa-solid fa-check"></i>
+            </div>
+            <h2 id="popupTitle" class="text-2xl font-bold text-white mb-3">บันทึกสำเร็จ!</h2>
+            <p id="popupMessage" class="text-gray-400 text-sm leading-relaxed"></p>
+            <div class="popup-progress">
+                <div id="popupProgressBar" class="popup-progress-bar success"></div>
+            </div>
+            <button onclick="closePopup()" class="mt-6 px-8 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition text-sm">
+                <i class="fa-solid fa-check mr-2"></i>เข้าใจแล้ว
+            </button>
+        </div>
+    </div>
+
+    <!-- ======= Attachment List Modal ======= -->
+    <div id="attachmentModal" class="fixed inset-0 z-[10005] hidden flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 w-[90%] max-w-md shadow-2xl relative">
+            <button onclick="closeAttachmentModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-4"><i class="fa-solid fa-paperclip text-purple-400 mr-2"></i> ไฟล์แนบทั้งหมด</h3>
+            <div id="attachmentLinksContainer" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                <!-- Links injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ======= Document Preview Modal ======= -->
+    <div id="documentPreviewModal" class="fixed inset-0 z-[10001] hidden bg-gray-900/95 backdrop-blur-md">
+        
+        <!-- ปุ่มปริ้น PDF -->
+        <button onclick="window.print()" class="absolute top-4 right-20 md:top-6 md:right-24 z-[10005] bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center transition shadow-lg border border-blue-500" title="พิมพ์เป็น PDF">
+            <i class="fa-solid fa-print text-xl"></i>
+        </button>
+
+        <!-- ปุ่มปิดแบบคงที่ -->
+        <button onclick="closePreview()" class="absolute top-4 right-4 md:top-6 md:right-8 z-[10005] bg-gray-800 hover:bg-red-600 text-white w-12 h-12 rounded-full flex items-center justify-center transition shadow-lg border border-gray-600 hover:border-red-500" title="ปิดพรีวิว">
+            <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+
+        <!-- กรอบ Scroll เนื้อหา -->
+        <div class="w-full h-full overflow-y-auto flex flex-col items-center pt-10 pb-20 custom-scrollbar">
+
+            <div class="text-center mb-6 mt-4 shrink-0">
+                <h3 class="text-2xl font-bold text-white"><i class="fa-solid fa-magnifying-glass mr-2 text-blue-500"></i> พรีวิวเอกสาร</h3>
+                <p class="text-gray-400 text-sm mt-2">แสดงข้อมูลจากประวัติการทำรายการ</p>
+            </div>
+
+            <div class="w-full max-w-[100vw] flex justify-center px-2 md:px-4 shrink-0">
+                <div class="bg-gray-900 rounded-lg border border-gray-700 shadow-xl flex flex-col gap-10 p-4 md:p-8 overflow-x-auto" id="previewModalContent">
+                    
+                    <!-- โซนไดนามิก: ระบบจะสร้าง A4 ขึ้นมาที่นี่ตามจำนวนหน้าอัตโนมัติ -->
+                    <div id="dynamic-preview-pages" class="w-full flex flex-col gap-10"></div>
+
+                </div>
+            </div>
+
+            <!-- โซนแสดงไฟล์แนบในพรีวิว -->
+            <div id="prev-attachments-area" class="hidden shrink-0 mx-auto w-[794px] max-w-full bg-gray-800 p-6 rounded-lg border border-gray-700 mt-4">
+                <!-- Links injected here dynamically -->
+            </div>
+            
+        </div> 
+    </div>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden backdrop-blur-sm transition-opacity" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="mainSidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-gray-800 border-r border-gray-700 flex flex-col transition-transform duration-300 transform -translate-x-full md:relative md:translate-x-0 flex-shrink-0 shadow-2xl md:shadow-none">
+        <div class="h-16 flex items-center justify-between px-6 border-b border-gray-700 shrink-0">
+            <div class="flex items-center">
+                <i class="fa-solid fa-file-invoice-dollar text-blue-500 text-2xl mr-3"></i>
+                <h1 class="text-lg font-bold text-white tracking-wide">เคลียร์เงิน<span class="text-blue-500">.</span></h1>
+            </div>
+            <!-- Close button for mobile -->
+            <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- User Profile Block -->
+        <div class="px-5 py-5 border-b border-gray-700 flex items-center bg-gray-900/30 shrink-0">
+            <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg mr-3 shadow-lg shrink-0">
+                <span id="userAvatar">U</span>
+            </div>
+            <div class="flex-1 overflow-hidden">
+                <p id="userNameDisplay" class="text-white text-sm font-medium truncate">กำลังโหลด...</p>
+                <p id="userRoleDisplay" class="text-blue-400 text-xs font-medium mt-0.5 truncate">Role</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 py-5 space-y-2 overflow-y-auto custom-scrollbar">
+            <button onclick="switchTab('create')" id="nav-create" class="nav-btn w-full flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg shadow transition-colors">
+                <i class="fa-solid fa-pen-to-square w-6"></i>
+                <span class="ml-2">1. สร้างเอกสาร</span>
+            </button>
+            <button onclick="switchTab('edit')" id="nav-edit" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors">
+                <i class="fa-solid fa-file-pen w-6"></i>
+                <span class="ml-2">2. แก้ไขเอกสาร</span>
+            </button>
+            <button onclick="switchTab('download')" id="nav-download" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors">
+                <i class="fa-solid fa-download w-6"></i>
+                <span class="ml-2">3. ดาวน์โหลดเอกสาร</span>
+            </button>
+            <button onclick="switchTab('history')" id="nav-history" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors">
+                <i class="fa-solid fa-clock-rotate-left w-6"></i>
+                <span class="ml-2">4. ประวัติการทำ</span>
+            </button>
+            <!-- 5. ตั้งค่า (Settings) -->
+            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors mt-4 border-t border-gray-700">
+                <i class="fa-solid fa-gear w-6"></i>
+                <span class="ml-2">5. ตั้งค่า</span>
+            </button>
+        </nav>
+        
+        <div class="p-4 border-t border-gray-700 shrink-0">
+            <button onclick="logout()" class="w-full flex items-center justify-center px-4 py-2.5 text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-sm font-medium border border-red-500/20">
+                <i class="fa-solid fa-right-from-bracket mr-2"></i> ออกจากระบบ
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 relative overflow-y-auto custom-scrollbar bg-gray-900 w-full">
+        
+        <!-- Header Mobile (Hidden on Desktop) -->
+        <header class="md:hidden h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4 sticky top-0 z-20 shadow-md">
+            <div class="flex items-center">
+                <i class="fa-solid fa-file-invoice-dollar text-blue-500 text-xl mr-2"></i>
+                <h1 class="text-md font-bold text-white">บันทึกใบเคลียร์เงิน</h1>
+            </div>
+            <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white p-2 focus:outline-none">
+                <i class="fa-solid fa-bars text-2xl"></i>
+            </button>
+        </header>
+
+        <div class="p-4 md:p-8 w-full flex-1">
+            
+            <!-- 1. สร้างเอกสาร (Create Document) -->
+            <section id="section-create" class="tab-section block animation-fade max-w-6xl mx-auto">
+                <h2 id="create-section-title" class="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-2">สร้างเอกสารใหม่</h2>
+                
+                <div class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 md:p-8">
+                    
+                    <!-- ส่วนเลือกประเภทเอกสาร -->
+                    <div class="mb-6 bg-gray-900/50 p-5 rounded-xl border border-gray-700">
+                        <h3 class="text-white font-medium mb-4"><i class="fa-solid fa-list-check text-blue-500 mr-2"></i>เลือกประเภทเอกสารที่ต้องการสร้าง <span class="text-sm text-yellow-400 font-normal">(สามารถเลือกหลายกล่องพร้อมกันได้)</span></h3>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <label class="flex items-center space-x-3 cursor-pointer group">
+                                <input type="checkbox" id="chk-advance" class="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-blue-600 bg-gray-700" onchange="toggleFormSection('advance')">
+                                <span class="text-gray-300 group-hover:text-white transition">1. ใบเคลียร์เงินทดรองจ่าย</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer group">
+                                <input type="checkbox" id="chk-receipt" class="w-5 h-5 rounded border-gray-600 text-green-600 focus:ring-green-600 bg-gray-700" onchange="toggleFormSection('receipt')">
+                                <span class="text-gray-300 group-hover:text-white transition">2. ใบรับเงิน</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer group bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/30 hover:bg-yellow-500/20">
+                                <input type="checkbox" id="chk-fuel" class="w-5 h-5 rounded border-gray-600 text-yellow-500 focus:ring-yellow-500 bg-gray-700" onchange="toggleFormSection('fuel')">
+                                <span class="text-yellow-400 font-medium">3. เบิกค่าน้ำมัน (แนบรูปไมล์รถที่นี่)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <form id="clearanceForm" onsubmit="handleFormSubmit(event)">
+                        
+                        <div id="forms-container" class="space-y-6">
+                            
+                            <!-- Form: ใบเคลียร์เงินทดรองจ่าย -->
+                            <div id="form-advance" class="hidden bg-gray-900/30 border border-blue-500/30 p-6 rounded-lg relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                                <h4 class="text-blue-400 font-bold mb-6 flex items-center"><i class="fa-solid fa-file-invoice-dollar mr-2"></i> ใบเคลียร์เงินทดรองจ่าย</h4>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">วันที่ทำรายการ</label>
+                                        <input type="date" id="adv_date" class="req-input-advance w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">ข้าพเจ้า (ชื่อ-สกุล)</label>
+                                        <input type="text" id="adv_name" placeholder="ชื่อ สกุล" class="req-input-advance w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">แผนก</label>
+                                        <input type="text" id="adv_department" placeholder="เช่น Laundry Technical (F230101)" class="req-input-advance w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">ทดรองจ่ายไปเมื่อวันที่</label>
+                                        <input type="date" id="adv_receive_date" class="req-input-advance w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">จำนวนเงินทดรองจ่ายที่รับมา (บาท)</label>
+                                        <input type="number" id="adv_receive_amount" placeholder="0.00" step="0.01" oninput="calculateAdvanceTotal()" class="req-input-advance w-full md:w-1/2 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                </div>
+
+                                <div class="mb-4 pt-4 border-t border-gray-700">
+                                    <p class="text-gray-300 font-medium mb-4">มีความประสงค์ขอเคลียร์ทดรองจ่าย ตามรายละเอียดดังต่อไปนี้:</p>
+                                </div>
+
+                                <!-- Dynamic Table (Advance) -->
+                                <div class="overflow-x-auto mb-4 bg-gray-800 rounded-lg border border-gray-700 custom-scrollbar">
+                                    <table class="w-full text-left border-collapse min-w-[600px]">
+                                        <thead>
+                                            <tr class="bg-gray-900/50 text-gray-400 text-sm">
+                                                <th class="p-3 font-medium w-12 text-center border-b border-gray-700">ลำดับ</th>
+                                                <th class="p-3 font-medium border-b border-gray-700">รายละเอียด (รวมค่าน้ำมันได้เลย)</th>
+                                                <th class="p-3 font-medium w-40 border-b border-gray-700">เลขที่ใบเสร็จรับเงิน</th>
+                                                <th class="p-3 font-medium w-36 text-right border-b border-gray-700">จำนวนเงิน</th>
+                                                <th class="p-3 font-medium w-12 text-center border-b border-gray-700">ลบ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="adv_items_tbody">
+                                            <!-- Rows added via JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <button type="button" onclick="addAdvanceItemRow()" class="mb-6 px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition text-sm flex items-center">
+                                    <i class="fa-solid fa-plus mr-2"></i> เพิ่มรายการ
+                                </button>
+
+                                <!-- Summary (Advance) -->
+                                <div class="bg-gray-900/50 p-5 rounded-lg border border-gray-700 flex flex-col items-end space-y-3 text-sm">
+                                    <div class="flex justify-between w-full md:w-72">
+                                        <span class="text-gray-400">รวมค่าใช้จ่ายทั้งสิ้น:</span>
+                                        <span class="text-white font-medium"><span id="adv_total_expense">0.00</span> ฿</span>
+                                    </div>
+                                    <div class="flex justify-between w-full md:w-72">
+                                        <span class="text-gray-400">หัก เงินทดรองจ่าย:</span>
+                                        <span class="text-white font-medium"><span id="adv_receive_amount_display">0.00</span> ฿</span>
+                                    </div>
+                                    <div class="flex justify-between w-full md:w-72 border-t border-gray-700 pt-3 mt-1">
+                                        <span id="adv_net_label" class="text-gray-300 font-medium">ยอดสุทธิ:</span>
+                                        <span class="text-white font-bold"><span id="adv_net_amount">0.00</span> ฿</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form: ใบรับเงิน -->
+                            <div id="form-receipt" class="hidden bg-gray-900/30 border border-green-500/30 p-6 rounded-lg relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+                                <h4 class="text-green-400 font-bold mb-6 flex items-center"><i class="fa-solid fa-hand-holding-dollar mr-2"></i> ใบรับเงิน</h4>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">วันที่</label>
+                                        <input type="date" id="rec_date" class="req-input-receipt w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">ข้าพเจ้า (ชื่อ-สกุล ผู้รับเงิน)</label>
+                                        <input type="text" id="rec_name" placeholder="ชื่อ สกุล" class="req-input-receipt w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">ที่อยู่</label>
+                                        <input type="text" id="rec_address" placeholder="ที่อยู่ผู้รับเงิน" class="req-input-receipt w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">ได้รับเงินจาก</label>
+                                        <input type="text" id="rec_received_from" value="บริษัท พีรพัฒน์ เทคโนโลยี จำกัด (มหาชน)" class="req-input-receipt w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic Table (Receipt) -->
+                                <div class="overflow-x-auto mb-4 bg-gray-800 rounded-lg border border-gray-700 custom-scrollbar">
+                                    <table class="w-full text-left border-collapse min-w-[700px]">
+                                        <thead>
+                                            <tr class="bg-gray-900/50 text-gray-400 text-sm">
+                                                <th class="p-3 font-medium w-12 text-center border-b border-gray-700">ลำดับที่</th>
+                                                <th class="p-3 font-medium border-b border-gray-700">รายละเอียด</th>
+                                                <th class="p-3 font-medium w-24 text-center border-b border-gray-700">ปริมาณ</th>
+                                                <th class="p-3 font-medium w-24 text-center border-b border-gray-700">หน่วย</th>
+                                                <th class="p-3 font-medium w-36 text-right border-b border-gray-700">จำนวนเงิน</th>
+                                                <th class="p-3 font-medium w-12 text-center border-b border-gray-700">ลบ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rec_items_tbody">
+                                            <!-- Rows added via JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <button type="button" onclick="addReceiptItemRow()" class="mb-6 px-4 py-2 bg-green-600/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-600/30 transition text-sm flex items-center">
+                                    <i class="fa-solid fa-plus mr-2"></i> เพิ่มรายการ
+                                </button>
+
+                                <!-- Summary (Receipt) -->
+                                <div class="bg-gray-900/50 p-5 rounded-lg border border-gray-700 flex justify-end text-sm">
+                                    <div class="flex justify-between w-full md:w-72 items-center">
+                                        <span class="text-gray-300 font-medium">รวมเงินทั้งสิ้น:</span>
+                                        <span class="text-green-400 font-bold text-lg"><span id="rec_total_amount">0.00</span> ฿</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form: เบิกค่าน้ำมัน -->
+                            <div id="form-fuel" class="hidden bg-yellow-900/10 border-2 border-yellow-500 p-6 rounded-lg relative overflow-hidden shadow-[0_0_15px_rgba(234,179,8,0.15)]">
+                                <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
+                                <h4 class="text-yellow-400 font-bold mb-4 flex items-center text-lg"><i class="fa-solid fa-gas-pump mr-2"></i> เบิกค่าน้ำมัน (สำหรับแนบรูปไมล์รถ)</h4>
+                                <p class="text-gray-400 text-sm mb-6 pb-4 border-b border-gray-700">หากต้องการแนบรูปไมล์รถเริ่มต้น/สิ้นสุด ให้กรอกข้อมูลการเดินทางและแนบรูปที่ฟอร์มนี้ครับ ลิงก์จะถูกแยกช่องให้อัตโนมัติ</p>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">วันที่ทำรายการ</label>
+                                        <input type="date" id="fuel_date" class="req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-2">ข้าพเจ้า (ชื่อ-สกุล)</label>
+                                        <input type="text" id="fuel_name" placeholder="ชื่อ สกุล" class="req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic Container for Fuel Items -->
+                                <div id="fuel_items_container" class="space-y-6 mb-6">
+                                    <!-- Rows added via JS -->
+                                </div>
+
+                                <button type="button" onclick="addFuelItemCard()" class="mb-6 px-4 py-2 bg-yellow-600/20 text-yellow-500 border border-yellow-500/30 rounded-lg hover:bg-yellow-600/30 transition text-sm flex items-center">
+                                    <i class="fa-solid fa-plus mr-2"></i> เพิ่มใบเบิกค่าน้ำมัน
+                                </button>
+
+                                <!-- Summary (Fuel) -->
+                                <div class="bg-gray-900/80 p-5 rounded-lg border border-yellow-500/30 flex justify-end text-sm">
+                                    <div class="w-full md:w-96 space-y-3">
+                                        <div class="flex justify-between items-center text-gray-400">
+                                            <span>รวมมูลค่าน้ำมันที่เติมทั้งหมด:</span>
+                                            <span class="text-white font-medium"><span id="fuel_total_actual">0.00</span> ฿</span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-gray-300 font-medium border-t border-gray-700 pt-3">
+                                            <span>รวมมูลค่าน้ำมันตามบริษัทกำหนด:</span>
+                                            <span class="text-yellow-400 font-bold text-lg"><span id="fuel_total_calculated">0.00</span> ฿</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- File Upload Preview Area -->
+                        <div id="upload-preview-area" class="hidden mt-6 px-2">
+                            <h5 class="text-gray-400 text-sm mb-3"><i class="fa-solid fa-paperclip mr-2"></i> ไฟล์แนบ (เอกสารทั่วไป):</h5>
+                            <div id="uploaded_files_list" class="flex flex-wrap gap-3">
+                                <!-- File items will be appended here via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div id="submit-area" class="hidden mt-6 items-center justify-end space-x-4 border-t border-gray-700 pt-6">
+                            
+                            <!-- Hidden File Input for Multiple Uploads -->
+                            <input type="file" id="additional_files" multiple accept="image/*,application/pdf" class="hidden" onchange="handleFileSelect(event)">
+                            
+                            <!-- Upload Button (Pushed to the left) -->
+                            <button type="button" onclick="document.getElementById('additional_files').click()" class="px-4 py-2.5 rounded-lg border border-dashed border-gray-500 text-gray-300 hover:bg-gray-800 hover:text-white transition flex items-center mr-auto text-sm">
+                                <i class="fa-solid fa-cloud-arrow-up mr-2 text-lg"></i> 
+                                <span class="text-left leading-tight">อัพโหลดเอกสารทั่วไป<br><span class="text-[10px] text-gray-400">(ใบเสร็จ, บิลต่างๆ ที่ไม่ใช่รูปไมล์รถ)</span></span>
+                            </button>
+
+                            <button type="button" onclick="resetAllForms()" class="px-6 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 transition">
+                                ล้างข้อมูล
+                            </button>
+                            <button type="submit" id="submitBtn" class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-[0_4px_15px_rgba(37,99,235,0.4)] transition flex items-center text-lg">
+                                <i class="fa-solid fa-paper-plane mr-2"></i> บันทึกข้อมูล
+                            </button>
+                        </div>
+                        
+                        <!-- Status Message -->
+                        <div id="statusMessage" class="hidden mt-4 p-4 rounded-lg text-sm text-center"></div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 2. แก้ไขเอกสาร (Edit Document) -->
+            <section id="section-edit" class="tab-section hidden animation-fade w-full">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-gray-700 pb-2 gap-3">
+                    <h2 class="text-2xl font-bold text-white">แก้ไขเอกสาร</h2>
+                    <button onclick="loadHistory()" class="text-sm text-blue-400 hover:text-blue-300 flex items-center bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                        <i class="fa-solid fa-rotate mr-2"></i> รีเฟรชข้อมูล
+                    </button>
+                </div>
+                
+                <div class="bg-gray-800/80 rounded-xl shadow-lg border border-gray-700/50 overflow-hidden backdrop-blur-sm">
+                    <div class="overflow-x-auto w-full custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-900/80 text-gray-400 text-sm uppercase tracking-wider">
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">วันที่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">ผู้ขอเบิก/รับเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">หมวดหมู่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">รายละเอียด</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-right">จำนวนเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center">สถานะ</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center w-32">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="editTableBody" class="text-gray-300">
+                                <tr>
+                                    <td colspan="7" class="p-8 text-center text-gray-500">
+                                        กำลังโหลดประวัติ...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ส่วนปุ่มเปลี่ยนหน้า (Pagination) -->
+                    <div id="editPagination" class="px-5 py-3 border-t border-gray-700/50 bg-gray-900/40"></div>
+                </div>
+            </section>
+
+            <!-- 3. ดาวน์โหลดเอกสาร (Download Document) -->
+            <section id="section-download" class="tab-section hidden animation-fade w-full">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-gray-700 pb-2 gap-3">
+                    <h2 class="text-2xl font-bold text-white">ดาวน์โหลดเอกสาร</h2>
+                    <button onclick="loadHistory()" class="text-sm text-blue-400 hover:text-blue-300 flex items-center bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                        <i class="fa-solid fa-rotate mr-2"></i> รีเฟรชข้อมูล
+                    </button>
+                </div>
+                
+                <div class="bg-gray-800/80 rounded-xl shadow-lg border border-gray-700/50 overflow-hidden backdrop-blur-sm">
+                    <div class="overflow-x-auto w-full custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-900/80 text-gray-400 text-sm uppercase tracking-wider">
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">วันที่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">ผู้ขอเบิก/รับเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">หมวดหมู่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">รายละเอียด</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-right">จำนวนเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center">สถานะ</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center w-40">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="downloadTableBody" class="text-gray-300">
+                                <tr>
+                                    <td colspan="7" class="p-8 text-center text-gray-500">
+                                        กำลังโหลดประวัติ...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ส่วนปุ่มเปลี่ยนหน้า (Pagination) -->
+                    <div id="downloadPagination" class="px-5 py-3 border-t border-gray-700/50 bg-gray-900/40"></div>
+                </div>
+            </section>
+
+            <!-- 4. ประวัติการทำ (History) -->
+            <section id="section-history" class="tab-section hidden animation-fade w-full">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-gray-700 pb-2 gap-3">
+                    <h2 class="text-2xl font-bold text-white">ประวัติใบเคลียร์เงิน</h2>
+                    <button onclick="loadHistory()" class="text-sm text-blue-400 hover:text-blue-300 flex items-center bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                        <i class="fa-solid fa-rotate mr-2"></i> รีเฟรชข้อมูล
+                    </button>
+                </div>
+                
+                <div class="bg-gray-800/80 rounded-xl shadow-lg border border-gray-700/50 overflow-hidden backdrop-blur-sm">
+                    <div class="overflow-x-auto w-full custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-900/80 text-gray-400 text-sm uppercase tracking-wider">
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">วันที่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">ผู้ขอเบิก/รับเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">หมวดหมู่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">รายละเอียด</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-right">จำนวนเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center">สถานะ</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center w-40">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody" class="text-gray-300">
+                                <tr>
+                                    <td colspan="7" class="p-8 text-center text-gray-500">
+                                        กำลังโหลดประวัติ...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ส่วนปุ่มเปลี่ยนหน้า (Pagination) -->
+                    <div id="historyPagination" class="px-5 py-3 border-t border-gray-700/50 bg-gray-900/40"></div>
+                </div>
+            </section>
+
+            <!-- 5. ตั้งค่า (Settings) -->
+            <section id="section-settings" class="tab-section hidden animation-fade max-w-6xl mx-auto">
+                <h2 class="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-2">ตั้งค่าระบบ</h2>
+
+                <!-- Rich Menu Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+                    <!-- Card: แก้ไขข้อมูลส่วนตัว -->
+                    <button class="rich-menu-card" onclick="toggleRichPanel('panel-profile', this)">
+                        <div class="w-16 h-16 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center mb-4 relative z-10">
+                            <i class="fa-solid fa-user-pen text-indigo-400 text-2xl"></i>
+                        </div>
+                        <h4 class="text-white font-semibold text-base mb-1 relative z-10">แก้ไขข้อมูลส่วนตัว</h4>
+                        <p class="text-gray-400 text-sm relative z-10">อัปเดตโปรไฟล์และจัดการลายเซ็นของคุณ</p>
+                        <div class="mt-3 text-indigo-400 text-xs flex items-center gap-1 relative z-10">
+                            <i class="fa-solid fa-hand-pointer"></i>
+                            <span>คลิกเพื่อเปิด</span>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Panel: แก้ไขข้อมูลส่วนตัว -->
+                <div id="panel-profile" class="rich-panel">
+                    <div class="bg-gray-800 rounded-xl shadow-lg border border-indigo-500/30 p-6 md:p-8 mb-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-medium text-white flex items-center">
+                                <i class="fa-solid fa-user-pen text-indigo-500 mr-2"></i>
+                                แก้ไขข้อมูลส่วนตัว & ลายเซ็น
+                            </h3>
+                            <button onclick="toggleRichPanel('panel-profile', document.querySelector('.rich-menu-card'))" class="text-gray-500 hover:text-white text-sm flex items-center gap-1 transition">
+                                <i class="fa-solid fa-xmark"></i> ปิด
+                            </button>
+                        </div>
+
+                        <form id="profileEditForm" onsubmit="updateProfile(event)" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">ชื่อ</label>
+                                    <input type="text" id="editFirstName" required class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">สกุล</label>
+                                    <input type="text" id="editLastName" required class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">เบอร์โทร</label>
+                                    <input type="tel" id="editPhone" required class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">แผนก</label>
+                                    <input type="text" id="editDepartment" required class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">ที่อยู่ (ตามบัตรประชาชน)</label>
+                                    <textarea id="editAddress" required rows="2" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition custom-scrollbar"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-gray-700 pt-6">
+                                <h4 class="text-white font-medium mb-4 flex items-center">
+                                    <i class="fa-solid fa-signature text-blue-400 mr-2"></i> จัดการลายเซ็น
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Draw Signature -->
+                                    <div>
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="block text-sm text-gray-400">วาดลายเซ็นของคุณ:</label>
+                                            <button type="button" onclick="clearSignatureCanvas()" class="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition">ล้าง</button>
+                                        </div>
+                                        <div class="border-2 border-gray-500 rounded-lg overflow-hidden relative touch-none bg-white">
+                                            <canvas id="signatureCanvas" width="400" height="200" class="w-full h-auto cursor-crosshair touch-none"></canvas>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Upload Signature -->
+                                    <div class="flex flex-col justify-center border-l-0 md:border-l border-gray-700 md:pl-6 space-y-4">
+                                        <div class="flex items-center text-gray-400 mb-2">
+                                            <span class="h-px bg-gray-700 flex-1 md:hidden"></span>
+                                            <span class="mx-4 md:mx-0 md:mb-2 font-medium">หรือ</span>
+                                            <span class="h-px bg-gray-700 flex-1 md:hidden"></span>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">อัปโหลดรูปภาพลายเซ็น (กระดาษขาว):</label>
+                                            <p class="text-xs text-blue-400 mb-3">ระบบจะตัดพื้นหลังสีขาวออกให้อัตโนมัติ</p>
+                                            <input type="file" id="signatureUpload" accept="image/*" class="w-full text-sm text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 transition cursor-pointer" onchange="handleSignatureUpload(this)">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end pt-4 border-t border-gray-700">
+                                <button type="submit" id="btnUpdateProfile" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg shadow-indigo-600/30 flex items-center">
+                                    <i class="fa-solid fa-save mr-2"></i> บันทึกข้อมูล
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // --- API URL (ใส่ URL ของคุณที่ได้จากการ Deploy Apps Script) ---
+        const GS_URL = 'https://script.google.com/macros/s/AKfycbw5S8T-zaw2tPq19fQ6SxoyQmwFSnMAD546LvolCfunRjQpIKNmjVQBqxbrtSor2hAarg/exec';
+
+        // ==========================================
+        // ระบบยืนยันตัวตน (Authentication Logic)
+        // ==========================================
+        let currentUser = null;
+        let isWaitingForSignature = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth(); 
+            setDatesToToday();
+            if(document.getElementById('adv_items_tbody')) addAdvanceItemRow();
+            if(document.getElementById('rec_items_tbody')) addReceiptItemRow();
+            if(document.getElementById('fuel_items_container')) addFuelItemCard();
+            
+            initSignatureCanvas('signatureCanvas');
+            initSignatureCanvas('modalSignatureCanvas');
+        });
+
+        function checkAuth() {
+            const savedUser = localStorage.getItem('clearanceUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('authOverlay').classList.remove('flex');
+                
+                updateUserSidebarInfo();
+                populateUserData();
+                populateEditProfileForm();
+                
+                loadHistory();
+            } else {
+                document.getElementById('authOverlay').classList.remove('hidden');
+                document.getElementById('authOverlay').classList.add('flex');
+                showLoginForm();
+            }
+        }
+
+        function showLoginForm() {
+            document.getElementById('registerFormContainer').classList.add('hidden');
+            document.getElementById('registerFormContainer').classList.remove('block');
+            document.getElementById('loginFormContainer').classList.remove('hidden');
+            document.getElementById('loginFormContainer').classList.add('block');
+        }
+
+        function showRegisterForm() {
+            document.getElementById('loginFormContainer').classList.add('hidden');
+            document.getElementById('loginFormContainer').classList.remove('block');
+            document.getElementById('registerFormContainer').classList.remove('hidden');
+            document.getElementById('registerFormContainer').classList.add('block');
+        }
+
+        async function doLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnLogin');
+            const email = document.getElementById('logEmail').value;
+            const password = document.getElementById('logPassword').value;
+
+            btn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังตรวจสอบ...';
+
+            try {
+                const response = await fetch(GS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'login', email, password })
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showToast('✅ ' + result.message, 'success');
+                    localStorage.setItem('clearanceUser', JSON.stringify(result.user));
+                    
+                    document.getElementById('logPassword').value = '';
+                    checkAuth();
+                } else {
+                    showToast('❌ ' + result.message, 'error');
+                }
+            } catch (err) {
+                showToast('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        async function doRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnRegister');
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showToast('❌ รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังลงทะเบียน...';
+
+            const payload = {
+                action: 'register',
+                firstName: document.getElementById('regFirstName').value,
+                lastName: document.getElementById('regLastName').value,
+                email: document.getElementById('regEmail').value,
+                phone: document.getElementById('regPhone').value,
+                department: document.getElementById('regDepartment').value,
+                address: document.getElementById('regAddress').value,
+                password: password
+            };
+
+            try {
+                const response = await fetch(GS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showToast('✅ ' + result.message, 'success');
+                    document.getElementById('logEmail').value = payload.email;
+                    showLoginForm();
+                } else {
+                    showToast('❌ ' + result.message, 'error');
+                }
+            } catch (err) {
+                showToast('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        function logout() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                localStorage.removeItem('clearanceUser');
+                currentUser = null;
+                
+                document.getElementById('historyTableBody').innerHTML = '';
+                document.getElementById('downloadTableBody').innerHTML = '';
+                document.getElementById('editTableBody').innerHTML = '';
+                
+                resetAllForms();
+                switchTab('create');
+                checkAuth();
+            }
+        }
+
+        function updateUserSidebarInfo() {
+            if (!currentUser) return;
+            document.getElementById('userNameDisplay').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+            document.getElementById('userRoleDisplay').textContent = `${currentUser.department} | ${currentUser.role}`;
+            document.getElementById('userAvatar').textContent = currentUser.firstName.charAt(0).toUpperCase();
+        }
+
+        function populateUserData() {
+            if (!currentUser) return;
+            const fullName = `${currentUser.firstName} ${currentUser.lastName}`;
+
+            const advName = document.getElementById('adv_name');
+            if (advName && !advName.value) advName.value = fullName;
+            const advDept = document.getElementById('adv_department');
+            if (advDept && !advDept.value) advDept.value = currentUser.department;
+
+            const recName = document.getElementById('rec_name');
+            if (recName && !recName.value) recName.value = fullName;
+            const recAddr = document.getElementById('rec_address');
+            if (recAddr && !recAddr.value) recAddr.value = currentUser.address;
+
+            const fuelName = document.getElementById('fuel_name');
+            if (fuelName && !fuelName.value) fuelName.value = fullName;
+        }
+
+        // ==========================================
+        // ระบบจัดการตั้งค่าและโปรไฟล์
+        // ==========================================
+        function populateEditProfileForm() {
+            if (!currentUser) return;
+            document.getElementById('editFirstName').value = currentUser.firstName || '';
+            document.getElementById('editLastName').value = currentUser.lastName || '';
+            document.getElementById('editPhone').value = currentUser.phone || '';
+            document.getElementById('editDepartment').value = currentUser.department || '';
+            document.getElementById('editAddress').value = currentUser.address || '';
+            
+            // นำลายเซ็นเก่ามาแสดงถ้ามี (ดึงเป็นรูปแบบ URL มาแสดงผล)
+            if (currentUser.signature) {
+                drawSignatureImageToCanvas('signatureCanvas', currentUser.signature);
+            }
+        }
+
+        async function updateProfile(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnUpdateProfile');
+            btn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังบันทึก...';
+
+            let sigPayload = null;
+            const canvas = document.getElementById('signatureCanvas');
+            // ตรวจสอบว่ามีการแก้ไขภาพลายเซ็นใน Canvas หรือไม่ ถ้าไม่แก้ ไม่ต้องส่งไปให้หนัก
+            if (canvas.dataset.isModified === "true") {
+                if (canvas.dataset.hasDrawing === "true") {
+                    sigPayload = {
+                        data: canvas.toDataURL('image/png').split(',')[1],
+                        mimeType: 'image/png',
+                        name: 'sig_' + Date.now() + '.png'
+                    };
+                } else {
+                    sigPayload = ""; // แจ้งว่ามีการลบลายเซ็น
+                }
+            }
+
+            const payload = {
+                action: 'update_profile',
+                email: currentUser.email,
+                firstName: document.getElementById('editFirstName').value,
+                lastName: document.getElementById('editLastName').value,
+                phone: document.getElementById('editPhone').value,
+                department: document.getElementById('editDepartment').value,
+                address: document.getElementById('editAddress').value,
+            };
+
+            if (sigPayload !== null) {
+                payload.signature = sigPayload;
+            }
+
+            try {
+                const response = await fetch(GS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showToast('✅ ' + result.message, 'success');
+                    localStorage.setItem('clearanceUser', JSON.stringify(result.user));
+                    currentUser = result.user;
+                    updateUserSidebarInfo();
+                    // รีเซ็ตสถานะ modified เพื่อไม่ต้องอัปโหลดซ้ำอีกถ้าไม่ได้แก้
+                    canvas.dataset.isModified = "false";
+                } else {
+                    showToast('❌ ' + result.message, 'error');
+                }
+            } catch (err) {
+                showToast('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        function toggleRichPanel(panelId, cardEl) {
+            const panel = document.getElementById(panelId);
+            const isOpen = panel.classList.contains('open');
+            document.querySelectorAll('.rich-panel').forEach(p => p.classList.remove('open'));
+            document.querySelectorAll('.rich-menu-card').forEach(c => c.classList.remove('active'));
+            if (!isOpen) {
+                panel.classList.add('open');
+                cardEl.classList.add('active');
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // ==========================================
+        // ระบบลายเซ็น (Signature System)
+        // ==========================================
+        
+        // --- ส่วนวาดลายเซ็นบน Canvas ---
+        function initSignatureCanvas(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+
+            function getMousePos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.left) * scaleY
+                };
+            }
+
+            function getTouchPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                return {
+                    x: (e.touches[0].clientX - rect.left) * scaleX,
+                    y: (e.touches[0].clientY - rect.top) * scaleY
+                };
+            }
+
+            // Mouse Events
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                const pos = getMousePos(e);
+                lastX = pos.x; lastY = pos.y;
+                canvas.dataset.hasDrawing = "true"; 
+                canvas.dataset.isModified = "true";
+            });
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                const pos = getMousePos(e);
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                lastX = pos.x; lastY = pos.y;
+            });
+            canvas.addEventListener('mouseup', () => isDrawing = false);
+            canvas.addEventListener('mouseout', () => isDrawing = false);
+
+            // Touch Events
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                isDrawing = true;
+                const pos = getTouchPos(e);
+                lastX = pos.x; lastY = pos.y;
+                canvas.dataset.hasDrawing = "true"; 
+                canvas.dataset.isModified = "true";
+            }, { passive: false });
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!isDrawing) return;
+                const pos = getTouchPos(e);
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                lastX = pos.x; lastY = pos.y;
+            }, { passive: false });
+            canvas.addEventListener('touchend', () => isDrawing = false);
+        }
+
+        function clearSignatureCanvas() {
+            const canvasProfile = document.getElementById('signatureCanvas');
+            const canvasModal = document.getElementById('modalSignatureCanvas');
+            
+            if(canvasProfile) {
+                const ctxP = canvasProfile.getContext('2d');
+                ctxP.clearRect(0, 0, canvasProfile.width, canvasProfile.height);
+                canvasProfile.dataset.hasDrawing = "false";
+                canvasProfile.dataset.isModified = "true";
+            }
+            if(canvasModal) {
+                const ctxM = canvasModal.getContext('2d');
+                ctxM.clearRect(0, 0, canvasModal.width, canvasModal.height);
+                canvasModal.dataset.hasDrawing = "false";
+                canvasModal.dataset.isModified = "true";
+            }
+            
+            const fileUploadProfile = document.getElementById('signatureUpload');
+            if(fileUploadProfile) fileUploadProfile.value = '';
+            
+            const fileUploadModal = document.getElementById('modalSignatureUpload');
+            if(fileUploadModal) fileUploadModal.value = '';
+        }
+
+        // โหลดรูปลายเซ็นเดิมมาแสดงบน Canvas (โหลดจาก Google Drive LH3)
+        function drawSignatureImageToCanvas(canvasId, urlOrBase64) {
+            if(!urlOrBase64) return;
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.crossOrigin = "Anonymous"; // ป้องกันปัญหา CORS
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // จัดให้อยู่กึ่งกลาง
+                const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.9;
+                const w = img.width * scale;
+                const h = img.height * scale;
+                const x = (canvas.width - w) / 2;
+                const y = (canvas.height - h) / 2;
+                ctx.drawImage(img, x, y, w, h);
+                canvas.dataset.hasDrawing = "true";
+                canvas.dataset.isModified = "false"; // ลายเซ็นเก่า ยังไม่มีการแก้ไข
+            };
+            
+            // กรณีเป็น Link lh3 หรือ base64 สามารถให้ img.src วาดออกมาได้ปกติ
+            img.src = urlOrBase64;
+        }
+
+        // --- ส่วนจัดการรูปภาพที่อัปโหลดและตัดพื้นหลัง ---
+        function processSignatureImage(file, canvasId) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.getElementById(canvasId);
+                        const ctx = canvas.getContext('2d');
+                        
+                        // เคลียร์ Canvas ก่อนวาดรูปลงไป
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        // คำนวณ Scale ให้พอดีกับ Canvas 
+                        const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.9;
+                        const w = img.width * scale;
+                        const h = img.height * scale;
+                        const x = (canvas.width - w) / 2;
+                        const y = (canvas.height - h) / 2;
+                        
+                        ctx.drawImage(img, x, y, w, h);
+                        
+                        // นำพื้นหลังออก (ทำสีสว่าง/สีขาวให้โปร่งใส)
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i];
+                            const g = data[i+1];
+                            const b = data[i+2];
+                            // ถ้าสีสว่างเกินค่า Threshold (ใกล้เคียงขาว) ให้ปรับ Alpha เป็น 0
+                            if (r > 200 && g > 200 && b > 200) {
+                                data[i+3] = 0; 
+                            } else {
+                                // ทำให้รอยหมึกเข้มขึ้น
+                                data[i] = 0; data[i+1] = 0; data[i+2] = 0;
+                            }
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        canvas.dataset.hasDrawing = "true";
+                        canvas.dataset.isModified = "true"; // มาร์คว่ามีการแก้ไข
+                        resolve();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function handleSignatureUpload(input) {
+            if (input.files && input.files[0]) {
+                processSignatureImage(input.files[0], 'signatureCanvas');
+            }
+        }
+        function handleModalSignatureUpload(input) {
+            if (input.files && input.files[0]) {
+                processSignatureImage(input.files[0], 'modalSignatureCanvas');
+            }
+        }
+
+        // ==========================================
+        // UI Logic & Form Submit
+        // ==========================================
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('mainSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById('section-' + tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors";
+            });
+            const activeBtn = document.getElementById('nav-' + tabId);
+            if(activeBtn) {
+                if(tabId === 'settings') {
+                    activeBtn.className = "nav-btn w-full flex items-center px-4 py-3 bg-gray-700 text-white rounded-lg shadow transition-colors mt-4 border-t border-gray-600";
+                } else {
+                    activeBtn.className = "nav-btn w-full flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg shadow transition-colors";
+                }
+            }
+
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('mainSidebar');
+                if (!sidebar.classList.contains('-translate-x-full')) {
+                    toggleSidebar();
+                }
+            }
+
+            if(tabId === 'history' || tabId === 'download' || tabId === 'edit') loadHistory();
+        }
+
+        // --- View A4 Template Logic ---
+        function openPreview(indexOrType) {
+            const container = document.getElementById('dynamic-preview-pages');
+            if(container) container.innerHTML = '';
+
+            if (typeof indexOrType === 'number') {
+                const rowData = window.appHistoryData[indexOrType];
+                let raw = null;
+                try { if (rowData.raw_json) raw = JSON.parse(rowData.raw_json); } catch(e) {}
+
+                let docsToRender = [];
+                if (raw && raw.documents) {
+                    docsToRender = raw.documents;
+                } else {
+                    docsToRender = [raw || rowData];
+                }
+
+                // ดึงลายเซ็นจากข้อมูลประวัติ หรือใช้ลายเซ็นปัจจุบันชั่วคราว
+                const sigToUse = (raw && raw.signature) || currentUser.signature || '';
+
+                docsToRender.forEach(doc => {
+                    if(!doc) return;
+                    const type = doc.doc_type || doc.category || rowData.doc_type || '';
+                    let tplId = 'advance';
+                    if(type.includes('รับเงิน') || type === 'receipt') tplId = 'receipt';
+                    else if(type.includes('น้ำมัน') || type === 'fuel') tplId = 'fuel';
+
+                    populateTemplate(tplId, doc, rowData, container, sigToUse);
+                });
+
+                // ไฟล์แนบทั่วไป
+                const prevAttArea = document.getElementById('prev-attachments-area');
+                if (prevAttArea) {
+                    prevAttArea.innerHTML = '';
+                    if (rowData.attachments && rowData.attachments !== '-') {
+                        const links = rowData.attachments.split('\n');
+                        let attHtml = '<h4 class="text-white font-bold mb-3"><i class="fa-solid fa-paperclip text-purple-400 mr-2"></i> เอกสารแนบทั่วไป</h4><div class="flex flex-wrap gap-3">';
+                        let hasValidLinks = false;
+                        
+                        links.forEach((link, i) => {
+                            if(link.trim() === '' || link.startsWith('[')) return;
+                            let url = link.trim();
+                            let name = `ไฟล์แนบที่ ${i+1}`;
+                            
+                            if (url.includes('||')) {
+                                let parts = url.split('||');
+                                name = parts[0];
+                                url = parts[1];
+                            }
+                            
+                            hasValidLinks = true;
+                            attHtml += `
+                                <a href="${url}" target="_blank" class="flex items-center p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-blue-400 hover:text-blue-300 transition shadow-sm border border-gray-600">
+                                    <i class="fa-solid fa-file mr-3 text-lg"></i>
+                                    <span class="truncate max-w-[200px] text-sm">${name}</span>
+                                </a>
+                            `;
+                        });
+                        attHtml += '</div>';
+                        
+                        if (hasValidLinks) {
+                            prevAttArea.innerHTML = attHtml;
+                            prevAttArea.classList.remove('hidden');
+                        } else {
+                            prevAttArea.classList.add('hidden');
+                        }
+                    } else {
+                        prevAttArea.classList.add('hidden');
+                    }
+                }
+
+            }
+
+            const modal = document.getElementById('documentPreviewModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('block');
+        }
+
+        function closePreview() {
+            const modal = document.getElementById('documentPreviewModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('block');
+        }
+
+        function viewAttachments(index) {
+            const row = window.appHistoryData[index];
+            const links = (row.attachments || '').split('\n');
+            const container = document.getElementById('attachmentLinksContainer');
+            container.innerHTML = '';
+            
+            links.forEach((link, i) => {
+                if(link.trim() === '' || link.startsWith('[')) return;
+                
+                let url = link.trim();
+                let name = `ไฟล์แนบที่ ${i+1}`;
+                
+                if (url.includes('||')) {
+                    let parts = url.split('||');
+                    name = parts[0];
+                    url = parts[1];
+                }
+
+                container.innerHTML += `
+                    <a href="${url}" target="_blank" class="flex items-center p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-blue-400 hover:text-blue-300 transition shadow-sm border border-gray-600">
+                        <div class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center mr-3 shrink-0">
+                            <i class="fa-solid fa-link text-lg text-purple-400"></i>
+                        </div>
+                        <span class="truncate font-medium">${name}</span>
+                    </a>
+                `;
+            });
+
+            if (container.innerHTML === '') {
+                container.innerHTML = `<div class="text-center text-gray-500 py-4">ไม่พบลิงก์ไฟล์แนบที่สมบูรณ์</div>`;
+            }
+            
+            document.getElementById('attachmentModal').classList.remove('hidden');
+            document.getElementById('attachmentModal').classList.add('flex');
+        }
+
+        function closeAttachmentModal() {
+            document.getElementById('attachmentModal').classList.add('hidden');
+            document.getElementById('attachmentModal').classList.remove('flex');
+        }
+
+        function formatDriveImageUrl(url) {
+            if (!url || url === '-' || url.startsWith('ERROR')) return null;
+            if (url.includes('drive.google.com/uc')) {
+                const match = url.match(/[?&]id=([^&]+)/);
+                if (match && match[1]) {
+                    return 'https://drive.google.com/thumbnail?id=' + match[1] + '&sz=w1000';
+                }
+            }
+            return url;
+        }
+
+        // --- ระบบ Populate Template สำหรับพิมพ์ ---
+        function populateTemplate(tplId, doc, rowDataFallback, containerElement, signatureUrl) {
+            const formatMoney = (m) => (parseFloat(m)||0).toLocaleString('th-TH', {minimumFractionDigits: 2});
+
+            const formatThaiDate = (dateString) => {
+                if (!dateString || dateString === '-') return dateString || '';
+                const d = new Date(dateString);
+                if (!isNaN(d.getTime())) {
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear() + 543;
+                    return `${day}/${month}/${year}`;
+                }
+                return dateString;
+            };
+
+            const name = doc.name || rowDataFallback.name || '';
+            const dateStr = doc.date || rowDataFallback.date || '';
+            const formattedDate = formatThaiDate(dateStr);
+            const dept = doc.department || doc.address || rowDataFallback.dept_address || '';
+
+            let items = doc.items || [];
+            if (items.length === 0) {
+                items = [{
+                    description: doc.description || rowDataFallback.description || '',
+                    receipt_no: doc.receipt_no || rowDataFallback.receipt_no || '',
+                    qty: '-', unit: '-',
+                    amount: doc.amount || rowDataFallback.amount
+                }];
+            }
+            
+            // สร้าง Element รูปภาพลายเซ็น (ดึงจาก URL)
+            const sigImgHtml = signatureUrl ? `<img src="${signatureUrl}" class="signature-img-print" style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); max-height:45px; z-index:10;" crossorigin="anonymous">` : '';
+
+            if (tplId === 'advance') {
+                const itemsPerPage = 10;
+                const totalPages = Math.ceil(items.length / itemsPerPage) || 1;
+                
+                for (let p = 0; p < totalPages; p++) {
+                    const pageItems = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+                    const isLastPage = (p === totalPages - 1);
+                    
+                    let tbodyHtml = '';
+                    for (let i = 0; i < itemsPerPage; i++) {
+                        if (i < pageItems.length) {
+                            const it = pageItems[i];
+                            tbodyHtml += `<tr><td class="text-center">${(p * itemsPerPage) + i + 1}</td><td class="desc-col">${it.description||''}</td><td>${it.receipt_no||''}</td><td class="text-right">${formatMoney(it.amount)}</td></tr>`;
+                        } else {
+                            tbodyHtml += `<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>`;
+                        }
+                    }
+
+                    const advanceAmount = doc.advance_amount || 0;
+                    const totalAmt = doc.amount || rowDataFallback.amount || 0;
+                    const net = parseFloat(totalAmt) - parseFloat(advanceAmount);
+                    const netLabel = net > 0 ? "เงินที่ต้องเบิกเพิ่ม" : (net < 0 ? "เงินที่ต้องจ่ายคืน" : "เงินที่ต้องเบิกเพิ่ม");
+
+                    const htmlString = `
+                        <div class="a4-paper modal-tpl-view show shrink-0 mx-auto">
+                            <div class="text-center mb-6">
+                                <h2 class="text-[22px] font-bold">บริษัท พีรพัฒน์ เทคโนโลยี จำกัด (มหาชน)</h2>
+                                <h3 class="text-[26px] font-bold mt-1">ใบเคลียร์เงินทดรองจ่าย ${totalPages > 1 ? `(หน้า ${p+1}/${totalPages})` : ''}</h3>
+                            </div>
+                            
+                            <div class="text-right mb-4">
+                                <span class="font-bold">วันที่</span> <span class="fill-line" style="min-width: 120px;">${formattedDate}</span>
+                            </div>
+                            
+                            <div class="flex justify-between mb-4">
+                                <div><span class="font-bold">ข้าพเจ้า</span> <span class="fill-line" style="min-width: 250px; text-align: left; padding-left: 10px;">${name}</span></div>
+                                <div><span class="font-bold">แผนก</span> <span class="fill-line" style="min-width: 200px;">${dept}</span></div>
+                            </div>
+                            <div class="flex justify-between mb-4">
+                                <div><span class="font-bold">ทดรองจ่ายไปเมื่อวันที่</span> <span class="fill-line" style="min-width: 180px; text-align: left; padding-left: 10px;">${formatThaiDate(doc.advance_date)}</span></div>
+                                <div><span class="font-bold">จำนวนเงิน</span> <span class="fill-line" style="min-width: 120px; text-align: right; padding-right: 10px;">${formatMoney(advanceAmount)} บาท</span></div>
+                            </div>
+                            
+                            <p class="mb-2">มีความประสงค์ขอเคลียร์ทดรองจ่าย ตามรายละเอียดดังต่อไปนี้</p>
+                            
+                            <table class="official-table mb-4" style="height: auto;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%;">ลำดับ</th>
+                                        <th style="width: 50%;">รายละเอียด</th>
+                                        <th style="width: 20%;">เลขที่ใบเสร็จรับเงิน</th>
+                                        <th style="width: 20%;">จำนวนเงิน</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tbodyHtml}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" class="text-right font-bold" style="padding-right: 20px;">รวมทั้งสิ้น</td>
+                                        <td class="text-right font-bold">${isLastPage ? formatMoney(totalAmt) : '-'}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+
+                            <div class="flex justify-between items-start mb-6">
+                                <div class="w-1/2 pr-8">
+                                    <p class="font-bold mb-2">หมายเหตุ</p>
+                                </div>
+                                <div class="w-1/2 pl-4">
+                                    <table style="width: 100%; border-collapse: collapse; border: none; ${!isLastPage ? 'opacity: 0;' : ''}">
+                                        <tr>
+                                            <td style="border: none; padding: 6px 0;">ค่าใช้จ่าย</td>
+                                            <td class="text-right" style="border: none; border-bottom: 1px solid #000; padding: 6px 0; width: 50%;">${formatMoney(totalAmt)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="border: none; padding: 6px 0;">หัก ทดรองจ่าย</td>
+                                            <td class="text-right" style="border: none; border-bottom: 1px solid #000; padding: 6px 0;">${formatMoney(advanceAmount)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="border: none; padding: 6px 0;">${netLabel}</td>
+                                            <td class="text-right font-bold" style="border: none; border-bottom: 3px double #000; padding: 6px 0;">${formatMoney(Math.abs(net))}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="flex-grow"></div>
+
+                            <div class="flex justify-around text-center mt-auto relative">
+                                <div>
+                                    <p class="mb-6">ผู้ส่งเคลียร์</p>
+                                    <div class="relative inline-block mb-2">
+                                        ${sigImgHtml}
+                                        <p>ลงชื่อ......................................................</p>
+                                    </div>
+                                    <p class="mb-2">( ${name || '                                '} )</p>
+                                    <p>วันที่ ${formattedDate || '......../......../........'}</p>
+                                </div>
+                                <div>
+                                    <p class="mb-6">ผู้รับเคลียร์</p>
+                                    <p class="mb-2 relative">ลงชื่อ......................................................</p>
+                                    <p class="mb-2">(......................................................)</p>
+                                    <p>วันที่ ......../......../........</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    containerElement.insertAdjacentHTML('beforeend', htmlString);
+                }
+
+            } else if (tplId === 'receipt') {
+                const itemsPerPage = 10;
+                const totalPages = Math.ceil(items.length / itemsPerPage) || 1;
+                
+                for (let p = 0; p < totalPages; p++) {
+                    const pageItems = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+                    const isLastPage = (p === totalPages - 1);
+                    
+                    let tbodyHtml = '';
+                    for (let i = 0; i < itemsPerPage; i++) {
+                        if (i < pageItems.length) {
+                            const it = pageItems[i];
+                            tbodyHtml += `<tr><td class="text-center">${(p * itemsPerPage) + i + 1}</td><td class="desc-col">${it.description||''}</td><td class="text-center">${it.qty||''}</td><td class="text-center">${it.unit||''}</td><td class="text-right">${formatMoney(it.amount)}</td></tr>`;
+                        } else {
+                            tbodyHtml += `<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>`;
+                        }
+                    }
+
+                    const totalAmt = doc.amount || rowDataFallback.amount || 0;
+
+                    const htmlString = `
+                        <div class="a4-paper modal-tpl-view show shrink-0 mx-auto">
+                            <h2 class="text-2xl font-bold text-center mb-6">ใบรับเงิน ${totalPages > 1 ? `(หน้า ${p+1}/${totalPages})` : ''}</h2>
+                            
+                            <div class="text-right mb-4">
+                                วันที่ ${formattedDate}
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-4 mb-6">
+                                <div><span class="font-bold">ข้าพเจ้า:</span> ${name}</div>
+                                <div><span class="font-bold">ที่อยู่:</span> ${dept}</div>
+                                <div><span class="font-bold">ได้รับเงินจาก:</span> ${doc.received_from || 'บริษัท พีรพัฒน์ เทคโนโลยี จำกัด (มหาชน)'} เป็นการชำระค่า</div>
+                            </div>
+                            
+                            <table class="w-full text-left border-collapse official-table mb-4" style="height: auto;">
+                                <thead>
+                                    <tr>
+                                        <th class="p-3 font-medium w-12 text-center border-b border-gray-700">ลำดับที่</th>
+                                        <th class="p-3 font-medium border-b border-gray-700">รายละเอียด</th>
+                                        <th class="p-3 font-medium w-24 text-center border-b border-gray-700">ปริมาณ</th>
+                                        <th class="p-3 font-medium w-24 text-center border-b border-gray-700">หน่วย</th>
+                                        <th class="p-3 font-medium w-36 text-right border-b border-gray-700">จำนวนเงิน</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tbodyHtml}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td class="font-bold text-center whitespace-nowrap" style="border-left: hidden; border-bottom: hidden; border-right: hidden;">รวมเงิน</td>
+                                        <td colspan="3" class="font-bold text-left pl-4" style="border-bottom: hidden; background-image: radial-gradient(#555 1px, transparent 1px); background-size: 3px 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${isLastPage ? '('+formatMoney(totalAmt)+' บาทถ้วน)' : ''}</td>
+                                        <td class="text-right font-bold">${isLastPage ? formatMoney(totalAmt) : '-'}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+
+                            <div class="mt-4 mb-6" style="${!isLastPage ? 'opacity: 0;' : ''}">
+                                <div class="flex items-center mb-4">
+                                    <span class="w-16 font-bold">รับเงิน</span>
+                                    <div class="w-5 h-5 rounded-full border border-black mr-3"></div>
+                                    <span>เงินสด</span>
+                                </div>
+                                <div class="flex items-end">
+                                    <span class="w-16"></span>
+                                    <div class="w-5 h-5 rounded-full border border-black mr-3 flex-shrink-0 mb-1"></div>
+                                    <span class="mr-2 whitespace-nowrap">เช็ค</span>
+                                    <span class="inline-block border-b border-black w-48 mr-6"></span>
+                                    <span class="mr-2 whitespace-nowrap">เลขที่</span>
+                                    <span class="inline-block border-b border-black w-32 mr-6"></span>
+                                    <span class="mr-2 whitespace-nowrap">ลงวันที่</span>
+                                    <span class="inline-block border-b border-black flex-grow"></span>
+                                </div>
+                            </div>
+
+                            <div class="flex-grow"></div>
+
+                            <div class="mt-auto flex justify-end pb-4">
+                                <div class="text-center" style="width: 350px;">
+                                    <p class="mb-6 font-bold text-center">ข้าพเจ้าได้รับเงินเป็นที่เรียบร้อยแล้ว</p>
+                                    <div class="flex items-end justify-center mb-2 relative">
+                                        <span class="mr-2">ลงชื่อ</span>
+                                        <div class="relative inline-block flex-grow" style="border-bottom: 1px solid black;">
+                                            ${sigImgHtml}
+                                        </div>
+                                        <span class="ml-2">ผู้รับเงิน</span>
+                                    </div>
+                                    <p class="mt-2 text-center">( ${name || '                                '} )</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    containerElement.insertAdjacentHTML('beforeend', htmlString);
+                }
+
+            } else if (tplId === 'fuel') {
+                const itemsPerPage = 2; 
+                const totalPages = Math.ceil(items.length / itemsPerPage) || 1;
+
+                for (let p = 0; p < totalPages; p++) {
+                    const pageItems = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+                    
+                    let boxesHtml = '';
+                    pageItems.forEach((it, i) => {
+                        let finalStartImgUrl = formatDriveImageUrl(it.start_img_lh3);
+                        let finalEndImgUrl = formatDriveImageUrl(it.end_img_lh3);
+
+                        let startImgHtml = finalStartImgUrl ? `<img src="${finalStartImgUrl}" class="w-full h-full object-contain">` : `<div class="flex flex-col items-center justify-center h-full text-gray-400"><i class="fa-solid fa-image text-4xl mb-3"></i><span class="font-medium text-xs text-center">${it.start_img_lh3 || 'ไม่มีภาพ'}</span></div>`;
+                        let endImgHtml = finalEndImgUrl ? `<img src="${finalEndImgUrl}" class="w-full h-full object-contain">` : `<div class="flex flex-col items-center justify-center h-full text-gray-400"><i class="fa-solid fa-image text-4xl mb-3"></i><span class="font-medium text-xs text-center">${it.end_img_lh3 || 'ไม่มีภาพ'}</span></div>`;
+
+                        boxesHtml += `
+                        <div class="border border-black p-4 mb-4" style="page-break-inside: avoid;">
+                            <div class="mb-3"><span class="font-bold">วัตถุประสงค์:</span> ${it.objective||''}</div>
+                            <div class="grid grid-cols-2 gap-4 mb-3">
+                                <div><span class="font-bold">เดินทางจาก:</span> ${it.from||''}</div>
+                                <div><span class="font-bold">ถึง:</span> ${it.to||''}</div>
+                            </div>
+                            <div class="bg-gray-100 p-2 mb-3 grid grid-cols-3 gap-4 border border-gray-300 text-sm">
+                                <div><span class="font-bold">ระยะเริ่มต้น:</span> ${it.start_mileage||''}</div>
+                                <div><span class="font-bold">ระยะสิ้นสุด:</span> ${it.end_mileage||''}</div>
+                                <div><span class="font-bold">กิโลเมตร:</span> <span class="text-base font-bold">${it.total_km||'0'}</span></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-2 text-sm">
+                                <div><span class="font-bold">มูลค่าน้ำมันที่เติม:</span> ${formatMoney(it.actual_amount)}</div>
+                                <div><span class="font-bold">มูลค่าตามกำหนด:</span> <span class="font-bold">${formatMoney(it.calculated_amount)}</span> บาท</div>
+                            </div>
+                            <div class="text-center font-bold text-xs mt-1">อัตราค่าน้ำมันเชื้อเพลิง 3.25 บาท/กม.</div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 h-40 mb-6" style="page-break-inside: avoid;">
+                            <div class="border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden relative p-1">
+                                <div class="absolute top-0 left-0 bg-black/50 text-white text-[10px] px-2 py-1 rounded-br z-10">เริ่ม</div>
+                                ${startImgHtml}
+                            </div>
+                            <div class="border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden relative p-1">
+                                <div class="absolute top-0 left-0 bg-black/50 text-white text-[10px] px-2 py-1 rounded-br z-10">สิ้นสุด</div>
+                                ${endImgHtml}
+                            </div>
+                        </div>`;
+                    });
+
+                    const htmlString = `
+                        <div class="a4-paper modal-tpl-view show shrink-0 mx-auto">
+                            <h2 class="text-2xl font-bold text-center mb-6">เบิกค่าน้ำมัน ${totalPages > 1 ? `(หน้า ${p+1}/${totalPages})` : ''}</h2>
+                            
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div><span class="font-bold">ชื่อ:</span> ${name}</div>
+                                <div class="text-right"><span class="font-bold">วันที่:</span> ${formattedDate}</div>
+                            </div>
+
+                            <div>
+                                ${boxesHtml}
+                            </div>
+
+                            <div class="flex-grow"></div>
+
+                            <div class="grid grid-cols-2 gap-8 text-center mt-auto pt-4 relative">
+                                <div>
+                                    <div class="relative inline-block mb-6 w-full">
+                                        ${sigImgHtml}
+                                        <p>ลงชื่อ......................................................ผู้จัดทำ</p>
+                                    </div>
+                                    <p>( ${name || '                                '} )</p>
+                                </div>
+                                <div>
+                                    <p class="mb-6 relative">ลงชื่อ......................................................ผู้อนุมัติ</p>
+                                    <p>(......................................................)</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    containerElement.insertAdjacentHTML('beforeend', htmlString);
+                }
+            }
+        }
+
+        function setDatesToToday() {
+            const today = new Date();
+            if(document.getElementById('adv_date')) document.getElementById('adv_date').valueAsDate = today;
+            if(document.getElementById('adv_receive_date')) document.getElementById('adv_receive_date').valueAsDate = today;
+            if(document.getElementById('rec_date')) document.getElementById('rec_date').valueAsDate = today;
+            if(document.getElementById('fuel_date')) document.getElementById('fuel_date').valueAsDate = today;
+        }
+
+        function toggleFormSection(type) {
+            const isChecked = document.getElementById(`chk-${type}`).checked;
+            const formSection = document.getElementById(`form-${type}`);
+            
+            if (formSection) {
+                if (isChecked) {
+                    formSection.classList.remove('hidden');
+                    formSection.querySelectorAll(`.req-input-${type}`).forEach(input => input.required = true);
+                } else {
+                    formSection.classList.add('hidden');
+                    formSection.querySelectorAll(`.req-input-${type}`).forEach(input => input.required = false);
+                }
+            }
+            
+            const anyChecked = document.getElementById('chk-advance').checked || 
+                               document.getElementById('chk-receipt').checked || 
+                               document.getElementById('chk-fuel').checked;
+            
+            const submitArea = document.getElementById('submit-area');
+            const previewArea = document.getElementById('upload-preview-area');
+            
+            if (anyChecked) {
+                if(submitArea) submitArea.classList.remove('hidden');
+                if(submitArea) submitArea.classList.add('flex');
+            } else {
+                if(submitArea) submitArea.classList.add('hidden');
+                if(submitArea) submitArea.classList.remove('flex');
+                if(previewArea) previewArea.classList.add('hidden');
+            }
+        }
+
+        // --- File Upload Logic ---
+        let additionalUploadedFiles = [];
+        let existingAttachments = [];
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                for (let i = 0; i < files.length; i++) {
+                    const isDuplicate = additionalUploadedFiles.some(f => f.name === files[i].name && f.size === files[i].size);
+                    if (!isDuplicate) {
+                        additionalUploadedFiles.push(files[i]);
+                    }
+                }
+                renderUploadedFiles();
+            }
+            event.target.value = '';
+        }
+
+        function renderUploadedFiles() {
+            const container = document.getElementById('uploaded_files_list');
+            const previewArea = document.getElementById('upload-preview-area');
+            container.innerHTML = '';
+            
+            if (additionalUploadedFiles.length === 0 && existingAttachments.length === 0) {
+                previewArea.classList.add('hidden');
+                return;
+            }
+
+            previewArea.classList.remove('hidden');
+
+            existingAttachments.forEach((item, index) => {
+                let name = `ไฟล์แนบเดิม ${index + 1}`;
+                let url = item;
+                if (item.includes('||')) {
+                    const parts = item.split('||');
+                    name = parts[0];
+                    url = parts[1];
+                }
+
+                const el = document.createElement('div');
+                el.className = "flex items-center bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-300 shadow-sm";
+                el.innerHTML = `
+                    <i class="fa-solid fa-link text-purple-400 mr-3 text-lg"></i>
+                    <div class="flex flex-col mr-3">
+                        <span class="truncate max-w-[150px] font-medium" title="${name}">${name}</span>
+                        <a href="${url}" target="_blank" class="text-[10px] text-blue-400 hover:underline">ดูไฟล์</a>
+                    </div>
+                    <button type="button" onclick="removeExistingFile(${index})" class="ml-auto text-gray-500 hover:text-red-400 hover:bg-red-400/10 p-1.5 rounded-md transition" title="ลบไฟล์ทิ้ง">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                container.appendChild(el);
+            });
+
+            additionalUploadedFiles.forEach((file, index) => {
+                const el = document.createElement('div');
+                el.className = "flex items-center bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-300 shadow-sm";
+                
+                let iconClass = "fa-file";
+                if (file.type.startsWith('image/')) iconClass = "fa-file-image text-blue-400";
+                else if (file.type === 'application/pdf') iconClass = "fa-file-pdf text-red-400";
+
+                const fileSize = file.size < 1024 * 1024 
+                    ? (file.size / 1024).toFixed(1) + ' KB' 
+                    : (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+                el.innerHTML = `
+                    <i class="fa-solid ${iconClass} mr-3 text-lg"></i>
+                    <div class="flex flex-col mr-3">
+                        <span class="truncate max-w-[150px] font-medium" title="${file.name}">${file.name}</span>
+                        <span class="text-xs text-gray-500">${fileSize}</span>
+                    </div>
+                    <button type="button" onclick="removeUploadedFile(${index})" class="ml-auto text-gray-500 hover:text-red-400 hover:bg-red-400/10 p-1.5 rounded-md transition" title="ลบไฟล์">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function removeUploadedFile(index) {
+            additionalUploadedFiles.splice(index, 1);
+            renderUploadedFiles();
+        }
+
+        function removeExistingFile(index) {
+            existingAttachments.splice(index, 1);
+            renderUploadedFiles();
+        }
+
+        async function processFileForUpload(file) {
+            if (file.type.startsWith('image/')) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = event => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const maxDim = 1000; 
+                            let width = img.width, height = img.height;
+                            if (width > height) {
+                                if (width > maxDim) { height *= maxDim / width; width = maxDim; }
+                            } else {
+                                if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+                            }
+                            canvas.width = width; 
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                            resolve({
+                                name: file.name.replace(/\.[^/.]+$/, "") + ".jpg", 
+                                mimeType: 'image/jpeg',
+                                data: dataUrl.split(',')[1]
+                            });
+                        };
+                        img.onerror = reject;
+                        img.src = event.target.result;
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve({
+                        name: file.name,
+                        mimeType: file.type,
+                        data: reader.result.split(',')[1]
+                    });
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        // --- Advance Form Logic ---
+        function addAdvanceItemRow() {
+            const tbody = document.getElementById('adv_items_tbody');
+            if (tbody.children.length >= 50) { 
+                alert('ไม่สามารถเพิ่มรายการใบเคลียร์เงินได้เกิน 50 รายการครับ');
+                return;
+            }
+            
+            const rowCount = tbody.children.length + 1;
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-gray-700/50 hover:bg-gray-800/30 transition adv-item-row";
+            tr.innerHTML = `
+                <td class="p-2 text-center text-gray-400 row-index">${rowCount}</td>
+                <td class="p-2">
+                    <input type="text" placeholder="รายละเอียด" required class="item-desc w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </td>
+                <td class="p-2">
+                    <input type="text" placeholder="เลขที่ใบเสร็จ" class="item-receipt w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </td>
+                <td class="p-2">
+                    <input type="number" placeholder="0.00" step="0.01" required oninput="calculateAdvanceTotal()" class="item-amount w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-right">
+                </td>
+                <td class="p-2 text-center">
+                    <button type="button" onclick="removeAdvanceItemRow(this)" class="text-red-400 hover:text-red-300 transition p-1" title="ลบรายการ">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            updateAdvanceRowIndices();
+        }
+
+        function removeAdvanceItemRow(btn) {
+            const tbody = document.getElementById('adv_items_tbody');
+            if (tbody.children.length > 1) {
+                btn.closest('tr').remove();
+                updateAdvanceRowIndices();
+                calculateAdvanceTotal();
+            } else {
+                alert('ต้องมีอย่างน้อย 1 รายการครับ');
+            }
+        }
+
+        function updateAdvanceRowIndices() {
+            document.querySelectorAll('#adv_items_tbody .adv-item-row').forEach((row, index) => {
+                row.querySelector('.row-index').textContent = index + 1;
+            });
+        }
+
+        function calculateAdvanceTotal() {
+            let totalExpense = 0;
+            document.querySelectorAll('#adv_items_tbody .item-amount').forEach(input => {
+                totalExpense += parseFloat(input.value) || 0;
+            });
+            const advanceAmount = parseFloat(document.getElementById('adv_receive_amount').value) || 0;
+            const netAmount = totalExpense - advanceAmount;
+            
+            document.getElementById('adv_total_expense').textContent = totalExpense.toLocaleString('th-TH', {minimumFractionDigits: 2});
+            document.getElementById('adv_receive_amount_display').textContent = advanceAmount.toLocaleString('th-TH', {minimumFractionDigits: 2});
+            
+            const netElement = document.getElementById('adv_net_amount');
+            const netLabel = document.getElementById('adv_net_label');
+            
+            if (netAmount > 0) {
+                netLabel.textContent = "เบิกเพิ่ม:";
+                netLabel.className = "text-yellow-400 font-medium";
+                netElement.textContent = Math.abs(netAmount).toLocaleString('th-TH', {minimumFractionDigits: 2});
+                netElement.className = "text-yellow-400 font-bold";
+            } else if (netAmount < 0) {
+                netLabel.textContent = "ต้องจ่ายคืนบริษัท:";
+                netLabel.className = "text-red-400 font-medium";
+                netElement.textContent = Math.abs(netAmount).toLocaleString('th-TH', {minimumFractionDigits: 2});
+                netElement.className = "text-red-400 font-bold";
+            } else {
+                netLabel.textContent = "เงินที่ต้องเบิกเพิ่ม:";
+                netLabel.className = "text-green-400 font-medium";
+                netElement.textContent = "0.00";
+                netElement.className = "text-green-400 font-bold";
+            }
+        }
+
+        // --- Receipt Form Logic ---
+        function addReceiptItemRow() {
+            const tbody = document.getElementById('rec_items_tbody');
+            if (tbody.children.length >= 50) { 
+                alert('ไม่สามารถเพิ่มรายการใบรับเงินได้เกิน 50 รายการครับ');
+                return;
+            }
+            const rowCount = tbody.children.length + 1;
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-gray-700/50 hover:bg-gray-800/30 transition rec-item-row";
+            tr.innerHTML = `
+                <td class="p-2 text-center text-gray-400 row-index">${rowCount}</td>
+                <td class="p-2">
+                    <input type="text" placeholder="รายละเอียด" required class="item-desc w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500">
+                </td>
+                <td class="p-2">
+                    <input type="number" placeholder="0" class="item-qty w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500 text-center" oninput="calculateReceiptRow(this)">
+                </td>
+                <td class="p-2">
+                    <input type="number" step="0.01" placeholder="0.00" class="item-unit w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500 text-center" oninput="calculateReceiptRow(this)">
+                </td>
+                <td class="p-2">
+                    <input type="number" placeholder="0.00" step="0.01" required readonly class="item-amount w-full bg-gray-600 border border-gray-500 text-gray-300 rounded px-3 py-2 text-sm focus:outline-none cursor-not-allowed text-right">
+                </td>
+                <td class="p-2 text-center">
+                    <button type="button" onclick="removeReceiptItemRow(this)" class="text-red-400 hover:text-red-300 transition p-1" title="ลบรายการ">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            updateReceiptRowIndices();
+        }
+
+        function removeReceiptItemRow(btn) {
+            const tbody = document.getElementById('rec_items_tbody');
+            if (tbody.children.length > 1) {
+                btn.closest('tr').remove();
+                updateReceiptRowIndices();
+                calculateReceiptTotal();
+            } else {
+                alert('ต้องมีอย่างน้อย 1 รายการครับ');
+            }
+        }
+
+        function updateReceiptRowIndices() {
+            document.querySelectorAll('#rec_items_tbody .rec-item-row').forEach((row, index) => {
+                row.querySelector('.row-index').textContent = index + 1;
+            });
+        }
+
+        function calculateReceiptRow(input) {
+            const row = input.closest('tr');
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const unit = parseFloat(row.querySelector('.item-unit').value) || 0;
+            const amountInput = row.querySelector('.item-amount');
+            
+            amountInput.value = (qty * unit).toFixed(2);
+            calculateReceiptTotal();
+        }
+
+        function calculateReceiptTotal() {
+            let totalAmount = 0;
+            document.querySelectorAll('#rec_items_tbody .item-amount').forEach(input => {
+                totalAmount += parseFloat(input.value) || 0;
+            });
+            document.getElementById('rec_total_amount').textContent = totalAmount.toLocaleString('th-TH', {minimumFractionDigits: 2});
+        }
+
+        // --- Fuel Form Logic ---
+        function addFuelItemCard() {
+            const container = document.getElementById('fuel_items_container');
+            const itemCount = container.children.length + 1;
+            
+            const div = document.createElement('div');
+            div.className = "fuel-item-card bg-gray-800/80 p-5 rounded-lg border border-gray-700 relative";
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
+                    <h5 class="text-yellow-400 font-medium fuel-item-title"><i class="fa-solid fa-route mr-2"></i> รายการเบิกที่ ${itemCount}</h5>
+                    <button type="button" onclick="removeFuelItemCard(this)" class="text-red-400 hover:text-red-300 transition text-sm">
+                        <i class="fa-solid fa-trash mr-1"></i> ลบรายการ
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-400 mb-1">วัตถุประสงค์</label>
+                        <input type="text" placeholder="เช่น เดินทางไปติดตั้งเครื่องป้อน MAX-T..." required class="fuel-objective req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">เดินทางจาก (สถานที่เริ่มต้น)</label>
+                        <input type="text" placeholder="เช่น สำนักงานเขาย้อย" required class="fuel-from req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">ถึง (สถานที่สิ้นสุด)</label>
+                        <input type="text" placeholder="เช่น ออฟฟิศ รัชดา" required class="fuel-to req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700/50">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">ระยะทางเริ่มต้น</label>
+                        <input type="number" placeholder="เช่น 52996" required oninput="calculateFuelRow(this)" class="fuel-start req-input-fuel w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">ระยะทางสิ้นสุด</label>
+                        <input type="number" placeholder="เช่น 53270" required oninput="calculateFuelRow(this)" class="fuel-end req-input-fuel w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">กิโลเมตร (คำนวณอัตโนมัติ)</label>
+                        <div class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-yellow-400 font-medium text-right fuel-km-display">0</div>
+                        <input type="hidden" class="fuel-km" value="0">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">มูลค่าน้ำมันที่เติม (บาท)</label>
+                        <input type="number" step="0.01" placeholder="เช่น 800.00" required oninput="calculateFuelGrandTotal()" class="fuel-actual-amount req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">มูลค่าตามบริษัทกำหนด (กม. x 3.25 บาท)</label>
+                        <div class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-yellow-400 font-medium fuel-calc-display">0.00 ฿</div>
+                        <input type="hidden" class="fuel-calc-amount" value="0">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div class="bg-blue-900/20 border border-blue-500/50 p-4 rounded-lg">
+                        <label class="block text-sm font-bold text-white mb-2"><i class="fa-solid fa-image text-blue-400 mr-2"></i> 1. ภาพระยะทางเริ่มต้น</label>
+                        <input type="file" accept="image/*" class="fuel-start-img w-full text-xs text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 transition cursor-pointer" onchange="previewFuelImageInput(this)">
+                        <img class="fuel-preview-img hidden mt-3 w-full h-40 object-cover rounded-lg border border-blue-500/50 shadow-md">
+                    </div>
+                    <div class="bg-blue-900/20 border border-blue-500/50 p-4 rounded-lg">
+                        <label class="block text-sm font-bold text-white mb-2"><i class="fa-solid fa-image text-blue-400 mr-2"></i> 2. ภาพระยะทางสิ้นสุด</label>
+                        <input type="file" accept="image/*" class="fuel-end-img w-full text-xs text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 transition cursor-pointer" onchange="previewFuelImageInput(this)">
+                        <img class="fuel-preview-img hidden mt-3 w-full h-40 object-cover rounded-lg border border-blue-500/50 shadow-md">
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            updateFuelItemTitles();
+        }
+
+        function previewFuelImageInput(input) {
+            const imgEl = input.parentElement.querySelector('.fuel-preview-img');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgEl.src = e.target.result;
+                    imgEl.classList.remove('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                imgEl.src = '';
+                imgEl.classList.add('hidden');
+            }
+        }
+
+        function removeFuelItemCard(btn) {
+            const container = document.getElementById('fuel_items_container');
+            if (container.children.length > 1) {
+                btn.closest('.fuel-item-card').remove();
+                updateFuelItemTitles();
+                calculateFuelGrandTotal();
+            } else {
+                alert('ต้องมีอย่างน้อย 1 ใบเบิกครับ');
+            }
+        }
+
+        function updateFuelItemTitles() {
+            document.querySelectorAll('.fuel-item-card').forEach((card, index) => {
+                card.querySelector('.fuel-item-title').innerHTML = `<i class="fa-solid fa-route mr-2"></i> รายการเบิกที่ ${index + 1}`;
+            });
+        }
+
+        function calculateFuelRow(inputElement) {
+            const card = inputElement.closest('.fuel-item-card');
+            const startStr = card.querySelector('.fuel-start').value;
+            const endStr = card.querySelector('.fuel-end').value;
+            
+            let totalKm = 0;
+            if (startStr !== "" && endStr !== "") {
+                const start = parseFloat(startStr);
+                const end = parseFloat(endStr);
+                if (!isNaN(start) && !isNaN(end) && end >= start) {
+                    totalKm = end - start;
+                }
+            }
+
+            const calcAmount = totalKm * 3.25;
+
+            card.querySelector('.fuel-km').value = totalKm;
+            card.querySelector('.fuel-km-display').textContent = totalKm.toLocaleString();
+            card.querySelector('.fuel-calc-amount').value = calcAmount;
+            card.querySelector('.fuel-calc-display').textContent = calcAmount.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ฿';
+
+            calculateFuelGrandTotal();
+        }
+
+        function calculateFuelGrandTotal() {
+            let totalActual = 0;
+            let totalCalculated = 0;
+
+            document.querySelectorAll('.fuel-item-card').forEach(card => {
+                totalActual += parseFloat(card.querySelector('.fuel-actual-amount').value) || 0;
+                totalCalculated += parseFloat(card.querySelector('.fuel-calc-amount').value) || 0;
+            });
+
+            const elTotalActual = document.getElementById('fuel_total_actual');
+            const elTotalCalculated = document.getElementById('fuel_total_calculated');
+            
+            if(elTotalActual) elTotalActual.textContent = totalActual.toLocaleString('th-TH', {minimumFractionDigits: 2});
+            if(elTotalCalculated) elTotalCalculated.textContent = totalCalculated.toLocaleString('th-TH', {minimumFractionDigits: 2});
+        }
+
+        // --- General Reset ---
+        let editingRowNum = null;
+
+        function resetAllForms() {
+            document.getElementById('clearanceForm').reset();
+            
+            editingRowNum = null;
+            existingAttachments = [];
+            
+            document.getElementById('create-section-title').innerHTML = 'สร้างเอกสารใหม่';
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> บันทึกข้อมูล';
+            submitBtn.className = "px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg shadow-blue-500/30 transition flex items-center text-lg";
+
+            document.getElementById('chk-advance').checked = false;
+            document.getElementById('chk-receipt').checked = false;
+            document.getElementById('chk-fuel').checked = false;
+            toggleFormSection('advance');
+            toggleFormSection('receipt');
+            toggleFormSection('fuel');
+
+            additionalUploadedFiles = [];
+            renderUploadedFiles();
+
+            document.getElementById('adv_items_tbody').innerHTML = '';
+            addAdvanceItemRow();
+            
+            document.getElementById('rec_items_tbody').innerHTML = '';
+            addReceiptItemRow();
+            document.getElementById('rec_received_from').value = "บริษัท พีรพัฒน์ เทคโนโลยี จำกัด (มหาชน)";
+            
+            document.getElementById('fuel_items_container').innerHTML = '';
+            addFuelItemCard();
+
+            calculateAdvanceTotal();
+            calculateReceiptTotal();
+            calculateFuelGrandTotal();
+            
+            setDatesToToday();
+            populateUserData(); 
+        }
+
+        // --- Edit Document Logic ---
+        function editDocument(index) {
+            const rowData = window.appHistoryData[index];
+            let raw = null;
+            try { if (rowData.raw_json) raw = JSON.parse(rowData.raw_json); } catch(e) {}
+            
+            if (!raw || !raw.documents) {
+                showToast('❌ ไม่สามารถแก้ไขข้อมูลเก่าที่ไม่มีรูปแบบข้อมูลดิบที่ถูกต้องได้', 'error');
+                return;
+            }
+
+            resetAllForms();
+            switchTab('create');
+            
+            editingRowNum = rowData.row_num;
+            
+            document.getElementById('create-section-title').innerHTML = `<i class="fa-solid fa-pen text-yellow-500 mr-2"></i>แก้ไขเอกสาร (ทับข้อมูลเดิมในแถวที่ ${editingRowNum})`;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = `<i class="fa-solid fa-save mr-2"></i> บันทึกการแก้ไข`;
+            submitBtn.className = "px-6 py-2.5 rounded-lg bg-yellow-600 hover:bg-yellow-700 text-white font-medium shadow-lg shadow-yellow-500/30 transition flex items-center text-lg";
+            
+            if (rowData.attachments && rowData.attachments !== '-') {
+                existingAttachments = rowData.attachments.split('\n').filter(l => l.trim() !== '');
+            }
+            renderUploadedFiles();
+
+            showToast('🔄 ดึงข้อมูลเดิมมาใส่ในฟอร์มเรียบร้อยแล้ว สามารถแก้ไขได้เลย', 'warning');
+
+            raw.documents.forEach(doc => {
+                if (doc.doc_type === 'ใบเคลียร์เงินทดรองจ่าย') {
+                    document.getElementById('chk-advance').checked = true;
+                    toggleFormSection('advance');
+                    
+                    document.getElementById('adv_date').value = doc.date || '';
+                    document.getElementById('adv_name').value = doc.name || '';
+                    document.getElementById('adv_department').value = doc.department || '';
+                    document.getElementById('adv_receive_date').value = doc.advance_date || '';
+                    document.getElementById('adv_receive_amount').value = doc.advance_amount || '';
+                    
+                    const tbody = document.getElementById('adv_items_tbody');
+                    tbody.innerHTML = ''; 
+                    
+                    if (doc.items && doc.items.length > 0) {
+                        doc.items.forEach(it => {
+                            addAdvanceItemRow();
+                            const lastRow = tbody.lastElementChild;
+                            lastRow.querySelector('.item-desc').value = it.description || '';
+                            lastRow.querySelector('.item-receipt').value = it.receipt_no || '';
+                            lastRow.querySelector('.item-amount').value = it.amount || '';
+                        });
+                    } else {
+                        addAdvanceItemRow();
+                    }
+                    calculateAdvanceTotal();
+                }
+                
+                if (doc.doc_type === 'ใบรับเงิน') {
+                    document.getElementById('chk-receipt').checked = true;
+                    toggleFormSection('receipt');
+                    
+                    document.getElementById('rec_date').value = doc.date || '';
+                    document.getElementById('rec_name').value = doc.name || '';
+                    document.getElementById('rec_address').value = doc.address || '';
+                    document.getElementById('rec_received_from').value = doc.received_from || '';
+                    
+                    const tbody = document.getElementById('rec_items_tbody');
+                    tbody.innerHTML = ''; 
+                    
+                    if (doc.items && doc.items.length > 0) {
+                        doc.items.forEach(it => {
+                            addReceiptItemRow();
+                            const lastRow = tbody.lastElementChild;
+                            lastRow.querySelector('.item-desc').value = it.description || '';
+                            lastRow.querySelector('.item-qty').value = it.qty || '';
+                            lastRow.querySelector('.item-unit').value = it.unit || '';
+                            if (it.price) lastRow.querySelector('.item-unit').value = it.price;
+                            lastRow.querySelector('.item-amount').value = it.amount || '';
+                        });
+                    } else {
+                        addReceiptItemRow();
+                    }
+                    calculateReceiptTotal();
+                }
+
+                if (doc.doc_type === 'เบิกค่าน้ำมัน') {
+                    document.getElementById('chk-fuel').checked = true;
+                    toggleFormSection('fuel');
+                    
+                    document.getElementById('fuel_date').value = doc.date || '';
+                    document.getElementById('fuel_name').value = doc.name || '';
+                    
+                    const container = document.getElementById('fuel_items_container');
+                    container.innerHTML = '';
+                    
+                    if (doc.items && doc.items.length > 0) {
+                        doc.items.forEach(it => {
+                            addFuelItemCard();
+                            const lastCard = container.lastElementChild;
+                            lastCard.querySelector('.fuel-objective').value = it.objective || '';
+                            lastCard.querySelector('.fuel-from').value = it.from || '';
+                            lastCard.querySelector('.fuel-to').value = it.to || '';
+                            lastCard.querySelector('.fuel-start').value = it.start_mileage || '';
+                            lastCard.querySelector('.fuel-end').value = it.end_mileage || '';
+                            lastCard.querySelector('.fuel-actual-amount').value = it.actual_amount || '';
+                            
+                            lastCard.dataset.oldStartImg = it.start_img_lh3 || '';
+                            lastCard.dataset.oldEndImg = it.end_img_lh3 || '';
+                            
+                            if(it.start_img_lh3 && !it.start_img_lh3.startsWith('ERROR')) {
+                                const imgEl = lastCard.querySelector('.fuel-start-img').parentElement.querySelector('.fuel-preview-img');
+                                imgEl.src = formatDriveImageUrl(it.start_img_lh3) || it.start_img_lh3;
+                                imgEl.classList.remove('hidden');
+                            }
+                            if(it.end_img_lh3 && !it.end_img_lh3.startsWith('ERROR')) {
+                                const imgEl = lastCard.querySelector('.fuel-end-img').parentElement.querySelector('.fuel-preview-img');
+                                imgEl.src = formatDriveImageUrl(it.end_img_lh3) || it.end_img_lh3;
+                                imgEl.classList.remove('hidden');
+                            }
+                            
+                            calculateFuelRow(lastCard.querySelector('.fuel-start'));
+                        });
+                    } else {
+                        addFuelItemCard();
+                    }
+                }
+            });
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- Submit Form (Intercept with Signature Check) ---
+        let pendingSubmitEvent = null;
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (!document.getElementById('chk-advance').checked && 
+                !document.getElementById('chk-receipt').checked && 
+                !document.getElementById('chk-fuel').checked) {
+                alert('กรุณาเลือกประเภทเอกสารที่ต้องการบันทึกอย่างน้อย 1 ประเภท');
+                return;
+            }
+
+            // เช็คว่ามีลายเซ็นในระบบหรือยัง
+            if (!currentUser.signature) {
+                pendingSubmitEvent = e;
+                showSignatureRequiredModal();
+            } else {
+                executeSubmit();
+            }
+        }
+
+        function showSignatureRequiredModal() {
+            document.getElementById('signatureRequiredModal').classList.remove('hidden');
+            document.getElementById('signatureRequiredModal').classList.add('flex');
+            clearSignatureCanvas(); // เคลียร์รอรับอันใหม่
+        }
+
+        function closeSignatureRequiredModal() {
+            document.getElementById('signatureRequiredModal').classList.add('hidden');
+            document.getElementById('signatureRequiredModal').classList.remove('flex');
+            pendingSubmitEvent = null;
+        }
+
+        // บันทึกลายเซ็นใหม่แล้วส่งเอกสารต่อ
+        async function saveSignatureAndSubmit() {
+            let sigPayload = null;
+            const canvas = document.getElementById('modalSignatureCanvas');
+            if (canvas.dataset.isModified === "true" && canvas.dataset.hasDrawing === "true") {
+                sigPayload = {
+                    data: canvas.toDataURL('image/png').split(',')[1],
+                    mimeType: 'image/png',
+                    name: 'sig_' + Date.now() + '.png'
+                };
+            }
+
+            if (!sigPayload) {
+                alert('กรุณาวาดลายเซ็นหรืออัปโหลดรูปภาพก่อนบันทึกครับ');
+                return;
+            }
+
+            const btn = document.getElementById('btnSaveRequiredSignature');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังบันทึกลายเซ็น...';
+
+            try {
+                // บันทึกลายเซ็นลงฐานข้อมูล User ก่อน
+                const payload = {
+                    action: 'update_profile',
+                    email: currentUser.email,
+                    firstName: currentUser.firstName,
+                    lastName: currentUser.lastName,
+                    phone: currentUser.phone,
+                    department: currentUser.department,
+                    address: currentUser.address,
+                    signature: sigPayload
+                };
+
+                const response = await fetch(GS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // อัปเดต localStorage และ currentUser (ตอนนี้ signature จะเป็น URL แล้ว)
+                    localStorage.setItem('clearanceUser', JSON.stringify(result.user));
+                    currentUser = result.user;
+                    
+                    // ปิด Modal
+                    closeSignatureRequiredModal();
+                    
+                    // รันคำสั่ง Submit เอกสารต่อ
+                    executeSubmit();
+                } else {
+                    showToast('❌ บันทึกลายเซ็นไม่สำเร็จ: ' + result.message, 'error');
+                }
+            } catch (err) {
+                showToast('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-save mr-2"></i> บันทึกและส่งเอกสารต่อ';
+            }
+        }
+
+        // ตัวส่งเอกสารของจริง
+        async function executeSubmit() {
+            const url = GS_URL;
+
+            const submitBtn = document.getElementById('submitBtn');
+            const originalBtnText = submitBtn.innerHTML;
+            
+            let payload = { 
+                action: 'save_document',
+                documents: [], 
+                row_num: editingRowNum, 
+                old_attachments: existingAttachments 
+            };
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังเตรียมไฟล์และบันทึก...';
+            submitBtn.classList.replace('bg-blue-600', 'bg-blue-400');
+            submitBtn.classList.replace('bg-yellow-600', 'bg-yellow-400');
+
+            try {
+                if (document.getElementById('chk-advance').checked) {
+                    const items = Array.from(document.querySelectorAll('#adv_items_tbody .adv-item-row')).map(row => ({
+                        description: row.querySelector('.item-desc').value,
+                        receipt_no: row.querySelector('.item-receipt').value,
+                        amount: row.querySelector('.item-amount').value
+                    }));
+                    const totalExpense = document.getElementById('adv_total_expense').textContent.replace(/,/g, '');
+
+                    payload.documents.push({
+                        doc_type: 'ใบเคลียร์เงินทดรองจ่าย',
+                        date: document.getElementById('adv_date').value,
+                        name: document.getElementById('adv_name').value,
+                        department: document.getElementById('adv_department').value,
+                        advance_date: document.getElementById('adv_receive_date').value,
+                        advance_amount: document.getElementById('adv_receive_amount').value,
+                        category: 'เคลียร์ทดรองจ่าย',
+                        amount: totalExpense,
+                        description: items.length > 0 ? (items[0].description + (items.length > 1 ? ` (และอีก ${items.length - 1} รายการ)` : '')) : '-',
+                        items: items,
+                        net_result: document.getElementById('adv_net_label').textContent + " " + document.getElementById('adv_net_amount').textContent
+                    });
+                }
+
+                if (document.getElementById('chk-receipt').checked) {
+                    const items = Array.from(document.querySelectorAll('#rec_items_tbody .rec-item-row')).map(row => ({
+                        description: row.querySelector('.item-desc').value,
+                        qty: row.querySelector('.item-qty').value,
+                        unit: row.querySelector('.item-unit').value,
+                        amount: row.querySelector('.item-amount').value
+                    }));
+                    const totalAmount = document.getElementById('rec_total_amount').textContent.replace(/,/g, '');
+                    
+                    let autoDescription = "";
+                    if (items.length > 0) {
+                        autoDescription = items[0].description;
+                        if (items.length > 1) {
+                            autoDescription += ` (และอีก ${items.length - 1} รายการ)`;
+                        }
+                    }
+
+                    payload.documents.push({
+                        doc_type: 'ใบรับเงิน',
+                        date: document.getElementById('rec_date').value,
+                        name: document.getElementById('rec_name').value,
+                        address: document.getElementById('rec_address').value,
+                        received_from: document.getElementById('rec_received_from').value,
+                        amount: totalAmount,
+                        description: autoDescription,
+                        items: items,
+                        category: 'ใบรับเงิน'
+                    });
+                }
+
+                if (document.getElementById('chk-fuel').checked) {
+                    const fuelItems = [];
+                    const fuelCards = document.querySelectorAll('.fuel-item-card');
+                    
+                    for (const card of fuelCards) {
+                        let startFile = card.querySelector('.fuel-start-img').files[0];
+                        let endFile = card.querySelector('.fuel-end-img').files[0];
+                        
+                        let startBase64 = startFile ? await processFileForUpload(startFile) : null;
+                        let endBase64 = endFile ? await processFileForUpload(endFile) : null;
+
+                        fuelItems.push({
+                            objective: card.querySelector('.fuel-objective').value,
+                            from: card.querySelector('.fuel-from').value,
+                            to: card.querySelector('.fuel-to').value,
+                            start_mileage: card.querySelector('.fuel-start').value,
+                            end_mileage: card.querySelector('.fuel-end').value,
+                            total_km: card.querySelector('.fuel-km').value,
+                            actual_amount: card.querySelector('.fuel-actual-amount').value,
+                            calculated_amount: card.querySelector('.fuel-calc-amount').value,
+                            start_image_data: startBase64, 
+                            end_image_data: endBase64,
+                            start_img_lh3: card.dataset.oldStartImg || '', 
+                            end_img_lh3: card.dataset.oldEndImg || ''
+                        });
+                    }
+
+                    const totalActualAmount = document.getElementById('fuel_total_actual').textContent.replace(/,/g, '');
+                    const totalCalculatedAmount = document.getElementById('fuel_total_calculated').textContent.replace(/,/g, '');
+                    
+                    let autoDescription = "";
+                    if (fuelItems.length > 0) {
+                        autoDescription = fuelItems[0].objective + ` (${fuelItems[0].total_km} กม.)`;
+                        if (fuelItems.length > 1) {
+                            autoDescription += ` (และอีก ${fuelItems.length - 1} รายการ)`;
+                        }
+                    }
+
+                    payload.documents.push({
+                        doc_type: 'เบิกค่าน้ำมัน',
+                        date: document.getElementById('fuel_date').value,
+                        name: document.getElementById('fuel_name').value,
+                        amount: totalActualAmount,
+                        calculated_amount: totalCalculatedAmount,
+                        rate_per_km: "3.25",
+                        description: autoDescription,
+                        items: fuelItems,
+                        category: 'เบิกค่าน้ำมัน'
+                    });
+                }
+
+                let attachedFilesBase64 = [];
+                if (additionalUploadedFiles.length > 0) {
+                    for (let i = 0; i < additionalUploadedFiles.length; i++) {
+                        let base64Data = await processFileForUpload(additionalUploadedFiles[i]);
+                        attachedFilesBase64.push(base64Data);
+                    }
+                }
+                payload.attachments = attachedFilesBase64;
+                
+                // --- แปะลายเซ็นไปกับข้อมูลดิบด้วย เพื่อให้พรีวิวสามารถดึงไปใช้ได้ ---
+                payload.signature = currentUser.signature;
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+
+                let result;
+                try {
+                    result = await response.json();
+                } catch (parseErr) {
+                    showToast('✔ ส่งข้อมูลแล้ว! โปรดตรวจสอบใน Google Sheets', 'success');
+                    resetAllForms();
+                    return;
+                }
+
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'เกิดข้อผิดพลาดจาก Server');
+                }
+                showToast('✔ ' + (result.message || 'บันทึกสำเร็จ!'), 'success');
+                showPopup('บันทึกสำเร็จ!', result.message, 'success');
+                
+                resetAllForms();
+                
+            } catch (error) {
+                console.error("Error submitting:", error);
+                showToast('❌ เกิดข้อผิดพลาด: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.classList.replace('bg-blue-400', 'bg-blue-600');
+                submitBtn.classList.replace('bg-yellow-400', 'bg-yellow-600');
+            }
+        }
+
+        function showToast(message, type) {
+            let toast = document.getElementById('globalToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'globalToast';
+                toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;max-width:380px;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;transition:all 0.3s ease;';
+                document.body.appendChild(toast);
+            }
+            
+            if (type === 'success') {
+                toast.style.background = '#065f46';
+                toast.style.color = '#a7f3d0';
+                toast.style.border = '1px solid #059669';
+            } else if (type === 'warning') {
+                toast.style.background = '#78350f';
+                toast.style.color = '#fde68a';
+                toast.style.border = '1px solid #d97706';
+            } else {
+                toast.style.background = '#7f1d1d';
+                toast.style.color = '#fca5a5';
+                toast.style.border = '1px solid #dc2626';
+            }
+            
+            toast.innerHTML = message;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0)';
+            
+            showStatus(message, type);
+            
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 12000);
+        }
+
+        function showPopup(title, message, type) {
+            const popup    = document.getElementById('successPopup');
+            const circle   = document.getElementById('popupIconCircle');
+            const icon     = document.getElementById('popupIcon');
+            const titleEl  = document.getElementById('popupTitle');
+            const msgEl    = document.getElementById('popupMessage');
+            const bar      = document.getElementById('popupProgressBar');
+
+            if (type === 'success') {
+                circle.className = 'popup-icon-circle success';
+                icon.className   = 'fa-solid fa-check';
+                bar.className    = 'popup-progress-bar success';
+            } else {
+                circle.className = 'popup-icon-circle error';
+                icon.className   = 'fa-solid fa-xmark';
+                bar.className    = 'popup-progress-bar error';
+            }
+
+            titleEl.textContent = title;
+            msgEl.textContent   = message;
+
+            popup.classList.add('show');
+
+            bar.style.transition = 'none';
+            bar.style.width = '100%';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    bar.style.transition = 'width 5s linear';
+                    bar.style.width = '0%';
+                });
+            });
+
+            clearTimeout(popup._autoClose);
+            popup._autoClose = setTimeout(closePopup, 5000);
+        }
+
+        function closePopup() {
+            const popup = document.getElementById('successPopup');
+            popup.classList.remove('show');
+            clearTimeout(popup._autoClose);
+        }
+
+        document.getElementById('successPopup').addEventListener('click', function(e) {
+            if (e.target === this) closePopup();
+        });
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.classList.remove('hidden', 'bg-green-500/20', 'text-green-400', 'border-green-500/50', 'bg-red-500/20', 'text-red-400', 'border-red-500/50');
+            statusDiv.classList.add('border', 'block');
+            
+            if (type === 'success') {
+                statusDiv.classList.add('bg-green-500/20', 'text-green-400', 'border-green-500/50');
+                statusDiv.innerHTML = `<i class="fa-solid fa-circle-check mr-2"></i> ${message}`;
+            } else {
+                statusDiv.classList.add('bg-red-500/20', 'text-red-400', 'border-red-500/50');
+                statusDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-2"></i> ${message}`;
+            }
+
+            setTimeout(() => statusDiv.classList.add('hidden'), 12000);
+        }
+
+        let currentPageHistory = 1;
+        const itemsPerPageHistory = 10;
+
+        async function loadHistory() {
+            const url = GS_URL;
+            const historyTbody = document.getElementById('historyTableBody');
+            const downloadTbody = document.getElementById('downloadTableBody');
+            const editTbody = document.getElementById('editTableBody'); 
+
+            const loadingHtml = `<tr><td colspan="7" class="p-8 text-center text-blue-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังโหลดข้อมูล...</td></tr>`;
+            if (historyTbody) historyTbody.innerHTML = loadingHtml;
+            if (downloadTbody) downloadTbody.innerHTML = loadingHtml;
+            if (editTbody) editTbody.innerHTML = loadingHtml;
+
+            clearPagination();
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    window.appHistoryData = data.reverse();
+                    currentPageHistory = 1; 
+                    renderTables();
+                } else {
+                    renderEmptyState();
+                }
+
+            } catch (error) {
+                console.error("Error fetching history:", error);
+                renderErrorState();
+            }
+        }
+
+        function renderEmptyState() {
+             const emptyHtml = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลประวัติ</td></tr>`;
+             const historyTbody = document.getElementById('historyTableBody');
+             const downloadTbody = document.getElementById('downloadTableBody');
+             const editTbody = document.getElementById('editTableBody'); 
+             if (historyTbody) historyTbody.innerHTML = emptyHtml;
+             if (downloadTbody) downloadTbody.innerHTML = emptyHtml;
+             if (editTbody) editTbody.innerHTML = emptyHtml;
+             clearPagination();
+        }
+
+        function clearPagination() {
+            ['historyPagination', 'downloadPagination', 'editPagination'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
+        }
+
+        function renderTables() {
+            const historyTbody = document.getElementById('historyTableBody');
+            const downloadTbody = document.getElementById('downloadTableBody');
+            const editTbody = document.getElementById('editTableBody'); 
+
+            if (historyTbody) historyTbody.innerHTML = '';
+            if (downloadTbody) downloadTbody.innerHTML = '';
+            if (editTbody) editTbody.innerHTML = '';
+
+            const startIndex = (currentPageHistory - 1) * itemsPerPageHistory;
+            const endIndex = startIndex + itemsPerPageHistory;
+            const pageData = window.appHistoryData.slice(startIndex, endIndex);
+
+            pageData.forEach((row, pageIndex) => {
+                const actualIndex = startIndex + pageIndex; 
+                
+                let displayAmount = parseFloat(row.amount || 0);
+                try {
+                    if (row.raw_json) {
+                        const raw = JSON.parse(row.raw_json);
+                        if (raw && raw.documents) {
+                            const receiptDoc = raw.documents.find(d => d.doc_type === 'ใบรับเงิน');
+                            if (receiptDoc) {
+                                displayAmount = parseFloat(receiptDoc.amount || 0);
+                            }
+                        }
+                    }
+                } catch(e) {}
+
+                const amountStr = displayAmount.toLocaleString('th-TH', {minimumFractionDigits: 2});
+                const docType = row.category || row.doc_type || '-';
+
+                let displayDate = row.date || '-';
+                if (row.timestamp) {
+                    const d = new Date(row.timestamp);
+                    if (!isNaN(d.getTime())) {
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear() + 543; 
+                        const hours = String(d.getHours()).padStart(2, '0');
+                        const minutes = String(d.getMinutes()).padStart(2, '0');
+                        displayDate = `<span class="whitespace-nowrap">${day}/${month}/${year} <span class="text-gray-400 text-xs ml-1">${hours}:${minutes} น.</span></span>`;
+                    }
+                }
+
+                let attachmentBtnHtml = '';
+                if (row.attachments && row.attachments !== '-' && !row.attachments.startsWith('[')) {
+                    attachmentBtnHtml = `
+                        <button onclick="viewAttachments(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600 hover:text-white rounded-lg transition shadow" title="ดูไฟล์แนบ">
+                            <i class="fa-solid fa-paperclip"></i>
+                        </button>
+                    `;
+                }
+
+                const actionButtonsHtml = `
+                    <div class="flex justify-center items-center gap-2">
+                        <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        ${attachmentBtnHtml}
+                        <button onclick="alert('กำลังพัฒนาระบบดาวน์โหลด PDF...')" class="w-8 h-8 flex items-center justify-center bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600 hover:text-white rounded-lg transition shadow" title="ดาวน์โหลด PDF">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </button>
+                        <button onclick="alert('กำลังพัฒนาระบบดาวน์โหลด Excel...')" class="w-8 h-8 flex items-center justify-center bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600 hover:text-white rounded-lg transition shadow" title="ดาวน์โหลด Excel">
+                            <i class="fa-solid fa-file-excel"></i>
+                        </button>
+                    </div>
+                `;
+
+                const editActionButtonsHtml = `
+                    <div class="flex justify-center items-center gap-2">
+                        <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <button onclick="editDocument(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-yellow-600/20 text-yellow-500 border border-yellow-500/30 hover:bg-yellow-600 hover:text-white rounded-lg transition shadow" title="แก้ไขเอกสาร">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                    </div>
+                `;
+
+                let fullDesc = (row.description || '-').replace(/\n/g, '<br>');
+                if (row.receipt_no && row.receipt_no !== '-') {
+                    fullDesc += `<br><span class="text-xs text-blue-400/80 mt-1 inline-block"><i class="fa-solid fa-receipt mr-1"></i>ใบเสร็จ: ${row.receipt_no}</span>`;
+                }
+
+                let descHtml = '';
+                if ((row.description || '').length > 60 || (row.description || '').includes('\n') || (row.receipt_no && row.receipt_no !== '-')) {
+                    descHtml = `
+                        <div class="min-w-[200px] max-w-[400px] whitespace-normal">
+                            <div class="text-sm line-clamp-2 overflow-hidden text-gray-300 transition-all duration-300 ease-in-out">${fullDesc}</div>
+                            <button onclick="const content = this.previousElementSibling; content.classList.toggle('line-clamp-2'); this.innerHTML = content.classList.contains('line-clamp-2') ? '<i class=\\'fa-solid fa-chevron-down mr-1\\'></i> ดูเพิ่มเติม' : '<i class=\\'fa-solid fa-chevron-up mr-1\\'></i> ย่อลง';" class="text-xs text-blue-400 hover:text-blue-300 mt-1.5 font-medium focus:outline-none transition-colors flex items-center">
+                                <i class="fa-solid fa-chevron-down mr-1"></i> ดูเพิ่มเติม
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    descHtml = `<div class="text-sm text-gray-300 min-w-[200px] whitespace-normal">${fullDesc}</div>`;
+                }
+
+                const trHtml = `
+                    <td class="px-5 py-4 whitespace-nowrap">${displayDate}</td>
+                    <td class="px-5 py-4 font-medium text-white whitespace-nowrap">${row.name || '-'}</td>
+                    <td class="px-5 py-4 whitespace-nowrap">
+                        <span class="px-3 py-1.5 bg-gray-700 text-xs rounded-md text-gray-300 inline-block shadow-sm">${docType}</span>
+                    </td>
+                    <td class="px-5 py-4">
+                        ${descHtml}
+                    </td>
+                    <td class="px-5 py-4 text-right font-medium text-blue-400 whitespace-nowrap">${amountStr} ฿</td>
+                    <td class="px-5 py-4 text-center whitespace-nowrap">
+                        <span class="px-3 py-1.5 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 text-xs rounded-full inline-block">รอตรวจสอบ</span>
+                    </td>
+                    <td class="px-5 py-4 text-center whitespace-nowrap">
+                        REPLACE_ACTIONS
+                    </td>
+                `;
+
+                if (historyTbody) {
+                    const trHist = document.createElement('tr');
+                    trHist.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
+                    trHist.innerHTML = trHtml.replace('REPLACE_ACTIONS', actionButtonsHtml);
+                    historyTbody.appendChild(trHist);
+                }
+
+                if (downloadTbody) {
+                    const trDown = document.createElement('tr');
+                    trDown.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
+                    trDown.innerHTML = trHtml.replace('REPLACE_ACTIONS', actionButtonsHtml);
+                    downloadTbody.appendChild(trDown);
+                }
+
+                if (editTbody) {
+                    const trEdit = document.createElement('tr');
+                    trEdit.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
+                    trEdit.innerHTML = trHtml.replace('REPLACE_ACTIONS', editActionButtonsHtml);
+                    editTbody.appendChild(trEdit);
+                }
+            });
+
+            renderPaginationControls();
+        }
+
+        function renderPaginationControls() {
+            const totalItems = window.appHistoryData.length;
+            if (totalItems === 0) {
+                clearPagination();
+                return;
+            }
+
+            const totalPages = Math.ceil(totalItems / itemsPerPageHistory);
+            const startItem = (currentPageHistory - 1) * itemsPerPageHistory + 1;
+            const endItem = Math.min(currentPageHistory * itemsPerPageHistory, totalItems);
+            
+            const paginationHTML = `
+                <div class="flex flex-col sm:flex-row justify-between items-center w-full text-sm text-gray-400 gap-3">
+                    <div>
+                        แสดงข้อมูล ${startItem} ถึง ${endItem} จากทั้งหมด ${totalItems} รายการ
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changePage(${currentPageHistory - 1})" ${currentPageHistory === 1 ? 'disabled class="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700/50"' : 'class="w-8 h-8 flex items-center justify-center rounded bg-gray-700 text-white hover:bg-gray-600 transition border border-gray-600"'}><i class="fa-solid fa-angles-left"></i></button>
+                        
+                        <span class="px-3 py-1 font-medium text-white bg-gray-800 rounded border border-gray-700/50">หน้า ${currentPageHistory} / ${totalPages}</span>
+                        
+                        <button onclick="changePage(${currentPageHistory + 1})" ${currentPageHistory === totalPages ? 'disabled class="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700/50"' : 'class="w-8 h-8 flex items-center justify-center rounded bg-gray-700 text-white hover:bg-gray-600 transition border border-gray-600"'}><i class="fa-solid fa-angles-right"></i></button>
+                    </div>
+                </div>
+            `;
+
+            ['historyPagination', 'downloadPagination', 'editPagination'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = paginationHTML;
+            });
+        }
+
+        function changePage(newPage) {
+            const totalPages = Math.ceil(window.appHistoryData.length / itemsPerPageHistory);
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPageHistory = newPage;
+                renderTables();
+            }
+        }
+
+        function renderErrorState() {
+            const errorHtml = `
+                    <tr><td colspan="7" class="p-4 text-center text-red-400 bg-red-900/20 text-sm">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> ไม่สามารถดึงข้อมูลได้ (แสดงข้อมูลตัวอย่าง)<br>
+                        <span class="text-gray-500 text-xs">ตรวจสอบว่า Apps Script รองรับ GET Request และคืนค่า JSON หรือไม่</span>
+                    </td></tr>
+                `;
+            const historyTbody = document.getElementById('historyTableBody');
+            const downloadTbody = document.getElementById('downloadTableBody');
+            const editTbody = document.getElementById('editTableBody'); 
+            if (historyTbody) historyTbody.innerHTML = errorHtml;
+            if (downloadTbody) downloadTbody.innerHTML = errorHtml;
+            if (editTbody) editTbody.innerHTML = errorHtml;
+            clearPagination();
+        }
+    </script>
+</body>
+</html>
