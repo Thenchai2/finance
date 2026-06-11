@@ -2031,6 +2031,42 @@
         function populateTemplate(tplId, doc, rowDataFallback, containerElement, signatureUrl) {
             const formatMoney = (m) => (parseFloat(m)||0).toLocaleString('th-TH', {minimumFractionDigits: 2});
 
+            const numberToThaiWords = (amount) => {
+                const num = Math.abs(parseFloat(amount) || 0);
+                const ones = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+                const tens = ['', 'สิบ', 'ยี่สิบ', 'สามสิบ', 'สี่สิบ', 'ห้าสิบ', 'หกสิบ', 'เจ็ดสิบ', 'แปดสิบ', 'เก้าสิบ'];
+                const places = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+                const convert = (n) => {
+                    if (n === 0) return '';
+                    if (n < 10) return ones[n];
+                    if (n < 100) {
+                        const t = Math.floor(n / 10), o = n % 10;
+                        let r = '';
+                        if (t === 1) r = 'สิบ';
+                        else if (t === 2) r = 'ยี่สิบ';
+                        else r = ones[t] + 'สิบ';
+                        if (o === 1 && t > 0) r += 'เอ็ด';
+                        else if (o > 0) r += ones[o];
+                        return r;
+                    }
+                    if (n < 1000) return ones[Math.floor(n/100)] + 'ร้อย' + convert(n%100);
+                    if (n < 10000) return ones[Math.floor(n/1000)] + 'พัน' + convert(n%1000);
+                    if (n < 100000) return convert(Math.floor(n/10000)) + 'หมื่น' + convert(n%10000);
+                    if (n < 1000000) return convert(Math.floor(n/100000)) + 'แสน' + convert(n%100000);
+                    return convert(Math.floor(n/1000000)) + 'ล้าน' + convert(n%1000000);
+                };
+                const intPart = Math.floor(num);
+                const decPart = Math.round((num - intPart) * 100);
+                let result = convert(intPart) || 'ศูนย์';
+                result += 'บาท';
+                if (decPart > 0) {
+                    result += convert(decPart) + 'สตางค์';
+                } else {
+                    result += 'ถ้วน';
+                }
+                return result;
+            };
+
             const formatThaiDate = (dateString) => {
                 if (!dateString || dateString === '-') return dateString || '';
                 const d = new Date(dateString);
@@ -2229,7 +2265,7 @@
                                 <tfoot>
                                     <tr>
                                         <td class="font-bold text-center whitespace-nowrap" style="border-left: hidden; border-bottom: hidden; border-right: hidden;">รวมเงิน</td>
-                                        <td colspan="3" class="font-bold text-left pl-4" style="border-bottom: hidden; background-image: radial-gradient(#555 1px, transparent 1px); background-size: 3px 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${isLastPage ? '('+formatMoney(totalAmt)+' บาทถ้วน)' : ''}</td>
+                                        <td colspan="3" class="font-bold text-left pl-4" style="border-bottom: hidden; background-image: radial-gradient(#555 1px, transparent 1px); background-size: 3px 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${isLastPage ? '('+numberToThaiWords(totalAmt)+')' : ''}</td>
                                         <td class="text-right font-bold">${isLastPage ? formatMoney(totalAmt) : '-'}</td>
                                     </tr>
                                 </tfoot>
