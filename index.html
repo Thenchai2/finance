@@ -247,7 +247,7 @@
             
             #documentPreviewModal button, 
             #documentPreviewModal .text-center.mb-6.mt-4, 
-            #prev-attachments-area { 
+            #documentPreviewModal #prev-attachments-area { 
                 display: none !important; 
             }
 
@@ -482,6 +482,44 @@
         </div>
     </div>
 
+    <!-- ======= Return Reason Modal ======= -->
+    <div id="returnReasonModal" class="fixed inset-0 z-[10015] hidden flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 w-[90%] max-w-md shadow-2xl relative">
+            <button onclick="closeReturnReasonModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-circle-exclamation text-orange-500 mr-2"></i> ระบุเหตุผลการตีกลับแก้ไข</h3>
+            <p class="text-xs text-gray-400 mb-4">กรุณาระบุจุดที่ต้องการให้ผู้สร้างเอกสารแก้ไข เพื่อให้ดำเนินการแก้ไขได้อย่างถูกต้อง</p>
+            <textarea id="txtReturnReason" rows="4" placeholder="ระบุเหตุผลที่นี่ เช่น ภาพถ่ายเลขไมล์รถไม่ชัดเจน..." class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition custom-scrollbar mb-4"></textarea>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeReturnReasonModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition">ยกเลิก</button>
+                <button type="button" id="btnConfirmReturn" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-bold transition flex items-center gap-1">
+                    <i class="fa-solid fa-paper-plane"></i> ส่งกลับไปแก้ไข
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======= Custom Confirm Modal ======= -->
+    <div id="customConfirmModal" class="fixed inset-0 z-[10020] hidden flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 w-[90%] max-w-md shadow-2xl relative text-center">
+            <button onclick="closeCustomConfirm()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                <i id="confirmModalIcon" class="text-3xl"></i>
+            </div>
+            <h3 id="confirmModalTitle" class="text-xl font-bold text-white mb-2"></h3>
+            <p id="confirmModalMessage" class="text-sm text-gray-400 mb-6"></p>
+            <div class="flex justify-center gap-3">
+                <button type="button" id="btnConfirmCancel" class="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition font-medium">ยกเลิก</button>
+                <button type="button" id="btnConfirmOk" class="px-5 py-2.5 text-white rounded-lg text-sm font-bold transition flex items-center gap-1">
+                    <i class="fa-solid fa-check"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ======= Document Preview Modal ======= -->
     <div id="documentPreviewModal" class="fixed inset-0 z-[10001] hidden bg-gray-900/95 backdrop-blur-md">
         
@@ -552,22 +590,37 @@
                 <i class="fa-solid fa-pen-to-square w-6"></i>
                 <span class="ml-2">1. สร้างเอกสาร</span>
             </button>
-            <button onclick="switchTab('edit')" id="nav-edit" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors">
-                <i class="fa-solid fa-file-pen w-6"></i>
-                <span class="ml-2">2. แก้ไขเอกสาร</span>
+            <button onclick="switchTab('edit')" id="nav-edit" class="nav-btn w-full flex items-center justify-between px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-file-pen w-6"></i>
+                    <span class="ml-2">2. แก้ไขเอกสาร</span>
+                </div>
+                <span id="badge-edit" class="hidden px-2 py-0.5 text-xs font-bold bg-orange-500 text-white rounded-full">0</span>
             </button>
             <button onclick="switchTab('download')" id="nav-download" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors">
                 <i class="fa-solid fa-download w-6"></i>
                 <span class="ml-2">3. ดาวน์โหลดเอกสาร</span>
             </button>
-            <button onclick="switchTab('history')" id="nav-history" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors">
-                <i class="fa-solid fa-clock-rotate-left w-6"></i>
-                <span class="ml-2">4. ประวัติการทำ</span>
+            <!-- อนุมัติเอกสาร (เห็นเฉพาะ Admin / Manager) -->
+            <button onclick="switchTab('approve')" id="nav-approve" class="nav-btn w-full flex items-center justify-between px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors hidden">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-file-signature w-6"></i>
+                    <span class="ml-2">4. อนุมัติเอกสาร</span>
+                </div>
+                <span id="badge-approve" class="hidden px-2 py-0.5 text-xs font-bold bg-yellow-500 text-gray-900 rounded-full">0</span>
+            </button>
+            <!-- งบประมาณ (Budget) (เห็นเฉพาะ Admin / Manager) -->
+            <button onclick="switchTab('budget')" id="nav-budget" class="nav-btn w-full flex items-center justify-between px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors hidden">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-wallet w-6"></i>
+                    <span class="ml-2">5. งบประมาณ (Budget)</span>
+                </div>
+                <span id="badge-budget" class="hidden px-2 py-0.5 text-xs font-bold bg-green-500 text-white rounded-full">0</span>
             </button>
             <!-- 5. ตั้งค่า (Settings) -->
             <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors mt-4 border-t border-gray-700">
                 <i class="fa-solid fa-gear w-6"></i>
-                <span class="ml-2">5. ตั้งค่า</span>
+                <span class="ml-2">6. ตั้งค่า</span>
             </button>
         </nav>
         
@@ -621,6 +674,15 @@
 
                     <form id="clearanceForm" onsubmit="handleFormSubmit(event)">
                         
+                        <!-- Return Reason Warning Banner -->
+                        <div id="return-reason-banner" class="hidden mb-6 bg-orange-500/10 border border-orange-500/50 p-4 rounded-xl text-orange-400 flex items-start gap-3">
+                            <i class="fa-solid fa-circle-exclamation text-xl mt-0.5 shrink-0"></i>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">เอกสารนี้ถูกตีกลับเพื่อแก้ไข</h4>
+                                <p class="text-xs mt-1 text-gray-300" id="return-reason-text">เหตุผล: -</p>
+                            </div>
+                        </div>
+
                         <div id="forms-container" class="space-y-6">
                             
                             <!-- Form: ใบเคลียร์เงินทดรองจ่าย -->
@@ -938,6 +1000,78 @@
                 </div>
             </section>
 
+            <!-- 4.5 อนุมัติเอกสาร (Approve Document) -->
+            <section id="section-approve" class="tab-section hidden animation-fade w-full">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-gray-700 pb-2 gap-3">
+                    <h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-file-signature text-yellow-500 mr-2"></i>อนุมัติเอกสาร</h2>
+                    <button onclick="loadHistory()" class="text-sm text-blue-400 hover:text-blue-300 flex items-center bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                        <i class="fa-solid fa-rotate mr-2"></i> รีเฟรชข้อมูล
+                    </button>
+                </div>
+                
+                <div class="bg-gray-800/80 rounded-xl shadow-lg border border-gray-700/50 overflow-hidden backdrop-blur-sm">
+                    <div class="overflow-x-auto w-full custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-900/80 text-gray-400 text-sm uppercase tracking-wider">
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">วันที่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">ผู้ขอเบิก/รับเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">หมวดหมู่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">รายละเอียด</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-right">จำนวนเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center">สถานะ</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center w-48">การอนุมัติ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="approveTableBody" class="text-gray-300">
+                                <tr>
+                                    <td colspan="7" class="p-8 text-center text-gray-500">
+                                        ยังไม่มีข้อมูลรออนุมัติ
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 4.6 งบประมาณ (Budget) -->
+            <section id="section-budget" class="tab-section hidden animation-fade w-full">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-gray-700 pb-2 gap-3">
+                    <h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-wallet text-green-500 mr-2"></i>งบประมาณ (Budget)</h2>
+                    <button onclick="loadHistory()" class="text-sm text-blue-400 hover:text-blue-300 flex items-center bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                        <i class="fa-solid fa-rotate mr-2"></i> รีเฟรชข้อมูล
+                    </button>
+                </div>
+                
+                <div class="bg-gray-800/80 rounded-xl shadow-lg border border-gray-700/50 overflow-hidden backdrop-blur-sm">
+                    <div class="overflow-x-auto w-full custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-900/80 text-gray-400 text-sm uppercase tracking-wider">
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">วันที่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">ผู้ขอเบิก/รับเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">หมวดหมู่</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">รายละเอียด</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-right">จำนวนเงิน</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center">สถานะ</th>
+                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center w-64">จัดการงบประมาณ (Budget)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="budgetTableBody" class="text-gray-300">
+                                <tr>
+                                    <td colspan="7" class="p-8 text-center text-gray-500">
+                                        ยังไม่มีเอกสารที่ได้รับการอนุมัติ
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ส่วนปุ่มเปลี่ยนหน้า (Pagination) -->
+                    <div id="budgetPagination" class="px-5 py-3 border-t border-gray-700/50 bg-gray-900/40"></div>
+                </div>
+            </section>
+
             <!-- 5. ตั้งค่า (Settings) -->
             <section id="section-settings" class="tab-section hidden animation-fade max-w-6xl mx-auto">
                 <h2 class="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-2">ตั้งค่าระบบ</h2>
@@ -952,6 +1086,18 @@
                         <h4 class="text-white font-semibold text-base mb-1 relative z-10">แก้ไขข้อมูลส่วนตัว</h4>
                         <p class="text-gray-400 text-sm relative z-10">อัปเดตโปรไฟล์และจัดการลายเซ็นของคุณ</p>
                         <div class="mt-3 text-indigo-400 text-xs flex items-center gap-1 relative z-10">
+                            <i class="fa-solid fa-hand-pointer"></i>
+                            <span>คลิกเพื่อเปิด</span>
+                        </div>
+                    </button>
+                    <!-- Card: ตั้งค่าสิทธิ์ (มองเห็นเฉพาะ admin) -->
+                    <button id="card-roles" class="rich-menu-card hidden" onclick="toggleRichPanel('panel-roles', this); loadUserRolesList();">
+                        <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mb-4 relative z-10">
+                            <i class="fa-solid fa-user-shield text-amber-400 text-2xl"></i>
+                        </div>
+                        <h4 class="text-white font-semibold text-base mb-1 relative z-10">ตั้งค่าสิทธิ์ผู้ใช้งาน</h4>
+                        <p class="text-gray-400 text-sm relative z-10">จัดการและตั้งค่าสิทธิ์ผู้ใช้งานในระบบ</p>
+                        <div class="mt-3 text-amber-400 text-xs flex items-center gap-1 relative z-10">
                             <i class="fa-solid fa-hand-pointer"></i>
                             <span>คลิกเพื่อเปิด</span>
                         </div>
@@ -1034,6 +1180,42 @@
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+
+                <!-- Panel: ตั้งค่าสิทธิ์ผู้ใช้งาน (เฉพาะ Admin) -->
+                <div id="panel-roles" class="rich-panel">
+                    <div class="bg-gray-800 rounded-xl shadow-lg border border-amber-500/30 p-6 md:p-8 mb-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-medium text-white flex items-center">
+                                <i class="fa-solid fa-user-shield text-amber-500 mr-2"></i>
+                                ตั้งค่าสิทธิ์ผู้ใช้งาน (เฉพาะผู้ดูแลระบบ)
+                            </h3>
+                            <button onclick="toggleRichPanel('panel-roles', document.getElementById('card-roles'))" class="text-gray-500 hover:text-white text-sm flex items-center gap-1 transition">
+                                <i class="fa-solid fa-xmark"></i> ปิด
+                            </button>
+                        </div>
+
+                        <!-- ตารางจัดการสิทธิ์ผู้ใช้ -->
+                        <div class="overflow-x-auto w-full custom-scrollbar">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-900/80 text-gray-400 text-sm uppercase tracking-wider">
+                                        <th class="px-5 py-4 font-medium border-b border-gray-700/50">ผู้ใช้งาน</th>
+                                        <th class="px-5 py-4 font-medium border-b border-gray-700/50">อีเมล</th>
+                                        <th class="px-5 py-4 font-medium border-b border-gray-700/50">แผนก</th>
+                                        <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center w-52">สิทธิ์การใช้งาน (Role)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userRolesTableBody" class="text-gray-300">
+                                    <tr>
+                                        <td colspan="4" class="p-8 text-center text-gray-500">
+                                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังโหลดรายชื่อผู้ใช้งาน...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -1185,6 +1367,10 @@
                 document.getElementById('historyTableBody').innerHTML = '';
                 document.getElementById('downloadTableBody').innerHTML = '';
                 document.getElementById('editTableBody').innerHTML = '';
+                const approveTbody = document.getElementById('approveTableBody');
+                if (approveTbody) approveTbody.innerHTML = '';
+                const budgetTbody = document.getElementById('budgetTableBody');
+                if (budgetTbody) budgetTbody.innerHTML = '';
                 
                 resetAllForms();
                 switchTab('create');
@@ -1197,6 +1383,38 @@
             document.getElementById('userNameDisplay').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
             document.getElementById('userRoleDisplay').textContent = `${currentUser.department} | ${currentUser.role}`;
             document.getElementById('userAvatar').textContent = currentUser.firstName.charAt(0).toUpperCase();
+            
+            // แสดงหรือซ่อนเมนูอนุมัติเอกสารตามสิทธิ์การใช้งาน
+            const userRole = (currentUser.role || "").toLowerCase();
+            const isAdminOrManager = (userRole === 'admin' || userRole === 'manager');
+
+            const navApprove = document.getElementById('nav-approve');
+            if (navApprove) {
+                if (isAdminOrManager) {
+                    navApprove.classList.remove('hidden');
+                } else {
+                    navApprove.classList.add('hidden');
+                }
+            }
+
+            const navBudget = document.getElementById('nav-budget');
+            if (navBudget) {
+                if (isAdminOrManager) {
+                    navBudget.classList.remove('hidden');
+                } else {
+                    navBudget.classList.add('hidden');
+                }
+            }
+
+            // แสดงหรือซ่อนปุ่มตั้งค่าสิทธิ์ผู้ใช้งาน (เฉพาะ Admin)
+            const cardRoles = document.getElementById('card-roles');
+            if (cardRoles) {
+                if (userRole === 'admin') {
+                    cardRoles.classList.remove('hidden');
+                } else {
+                    cardRoles.classList.add('hidden');
+                }
+            }
         }
 
         function populateUserData() {
@@ -1304,6 +1522,111 @@
                 panel.classList.add('open');
                 cardEl.classList.add('active');
                 panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // ==========================================
+        // ระบบจัดการสิทธิ์ผู้ใช้งาน (User Roles Management - เฉพาะ Admin)
+        // ==========================================
+        async function loadUserRolesList() {
+            if (!currentUser || currentUser.role.toLowerCase() !== 'admin') return;
+            const tbody = document.getElementById('userRolesTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-blue-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังโหลดรายชื่อผู้ใช้งาน...</td></tr>`;
+            
+            try {
+                const response = await fetch(GS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'get_users',
+                        userEmail: currentUser.email
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    tbody.innerHTML = '';
+                    const users = result.users || [];
+                    if (users.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">ไม่พบรายชื่อผู้ใช้งาน</td></tr>`;
+                        return;
+                    }
+                    
+                    users.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
+                        
+                        const isSelf = row.email.toLowerCase() === currentUser.email.toLowerCase();
+                        const fullName = `${row.firstName || ''} ${row.lastName || ''}`.trim() || '-';
+                        const dept = row.department || '-';
+                        
+                        let selectHtml = '';
+                        if (isSelf) {
+                            selectHtml = `
+                                <div class="flex justify-center items-center gap-1.5">
+                                    <span class="px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs rounded-lg font-medium" title="บัญชีของคุณเอง ไม่สามารถแก้ไขสิทธิ์ตัวเองได้">
+                                        Admin (บัญชีปัจจุบัน)
+                                    </span>
+                                </div>
+                            `;
+                        } else {
+                            selectHtml = `
+                                <div class="flex justify-center">
+                                    <select onchange="changeUserRole('${row.email}', this.value)" class="bg-gray-900 border border-gray-600 text-white text-sm rounded-lg px-3 py-1.5 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition">
+                                        <option value="User" ${row.role === 'User' ? 'selected' : ''}>User</option>
+                                        <option value="Manager" ${row.role === 'Manager' ? 'selected' : ''}>Manager</option>
+                                        <option value="Admin" ${row.role === 'Admin' ? 'selected' : ''}>Admin</option>
+                                    </select>
+                                </div>
+                            `;
+                        }
+                        
+                        tr.innerHTML = `
+                            <td class="px-5 py-4 font-medium text-white whitespace-nowrap">${fullName}</td>
+                            <td class="px-5 py-4 whitespace-nowrap text-gray-300">${row.email}</td>
+                            <td class="px-5 py-4 whitespace-nowrap text-gray-400">${dept}</td>
+                            <td class="px-5 py-4 text-center whitespace-nowrap">${selectHtml}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-400 bg-red-900/20 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i> ${result.message}</td></tr>`;
+                }
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-400 bg-red-900/20 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i> เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์</td></tr>`;
+            }
+        }
+        
+        async function changeUserRole(targetEmail, newRole) {
+            if (!currentUser || currentUser.role.toLowerCase() !== 'admin') return;
+            
+            showToast('⏳ กำลังอัปเดตสิทธิ์ผู้ใช้งาน...', 'warning');
+            
+            try {
+                const response = await fetch(GS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'update_user_role',
+                        userEmail: currentUser.email,
+                        targetEmail: targetEmail,
+                        newRole: newRole
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast('✔ ' + result.message, 'success');
+                    loadUserRolesList();
+                } else {
+                    showToast('❌ ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error("Error updating user role:", error);
+                showToast('❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
             }
         }
 
@@ -1512,14 +1835,16 @@
             document.getElementById('section-' + tabId).classList.remove('hidden');
 
             document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.className = "nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors";
+                btn.classList.remove('bg-blue-600', 'bg-gray-700', 'text-white', 'shadow');
+                btn.classList.add('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
             });
             const activeBtn = document.getElementById('nav-' + tabId);
             if(activeBtn) {
+                activeBtn.classList.remove('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
                 if(tabId === 'settings') {
-                    activeBtn.className = "nav-btn w-full flex items-center px-4 py-3 bg-gray-700 text-white rounded-lg shadow transition-colors mt-4 border-t border-gray-600";
+                    activeBtn.classList.add('bg-gray-700', 'text-white');
                 } else {
-                    activeBtn.className = "nav-btn w-full flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg shadow transition-colors";
+                    activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow');
                 }
             }
 
@@ -1530,7 +1855,7 @@
                 }
             }
 
-            if(tabId === 'history' || tabId === 'download' || tabId === 'edit') loadHistory();
+            if(tabId === 'history' || tabId === 'download' || tabId === 'edit' || tabId === 'approve' || tabId === 'budget') loadHistory();
         }
 
         // --- View A4 Template Logic ---
@@ -1703,6 +2028,10 @@
             // สร้าง Element รูปภาพลายเซ็น (ดึงจาก URL)
             const sigImgHtml = signatureUrl ? `<img src="${signatureUrl}" class="signature-img-print" style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); max-height:45px; z-index:10;" crossorigin="anonymous">` : '';
 
+            // ดึงลายเซ็นผู้อนุมัติ
+            const approverSigUrl = doc.approver_signature || rowDataFallback.approver_signature || '';
+            const approverSigImgHtml = (approverSigUrl && approverSigUrl !== '-') ? `<img src="${approverSigUrl}" class="signature-img-print" style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); max-height:45px; z-index:10;" crossorigin="anonymous">` : '';
+
             if (tplId === 'advance') {
                 const itemsPerPage = 10;
                 const totalPages = Math.ceil(items.length / itemsPerPage) || 1;
@@ -1804,7 +2133,10 @@
                                 </div>
                                 <div>
                                     <p class="mb-6">ผู้รับเคลียร์</p>
-                                    <p class="mb-2 relative">ลงชื่อ......................................................</p>
+                                    <div class="relative inline-block mb-2 w-full">
+                                        ${approverSigImgHtml}
+                                        <p>ลงชื่อ......................................................</p>
+                                    </div>
                                     <p class="mb-2">(......................................................)</p>
                                     <p>วันที่ ......../......../........</p>
                                 </div>
@@ -1978,7 +2310,10 @@
                                     <p>( ${name || '                                '} )</p>
                                 </div>
                                 <div>
-                                    <p class="mb-6 relative">ลงชื่อ......................................................ผู้อนุมัติ</p>
+                                    <div class="relative inline-block mb-6 w-full">
+                                        ${approverSigImgHtml}
+                                        <p>ลงชื่อ......................................................ผู้อนุมัติ</p>
+                                    </div>
                                     <p>(......................................................)</p>
                                 </div>
                             </div>
@@ -2463,12 +2798,17 @@
 
         // --- General Reset ---
         let editingRowNum = null;
+        let editingCreatorEmail = null;
 
         function resetAllForms() {
             document.getElementById('clearanceForm').reset();
             
             editingRowNum = null;
+            editingCreatorEmail = null;
             existingAttachments = [];
+            
+            const banner = document.getElementById('return-reason-banner');
+            if (banner) banner.classList.add('hidden');
             
             document.getElementById('create-section-title').innerHTML = 'สร้างเอกสารใหม่';
             const submitBtn = document.getElementById('submitBtn');
@@ -2518,6 +2858,17 @@
             switchTab('create');
             
             editingRowNum = rowData.row_num;
+            editingCreatorEmail = (raw && raw.creator_email) ? raw.creator_email : null;
+            
+            // แสดงแบนเนอร์คำเตือนถ้าโดนตีกลับแก้ไข
+            if (rowData.status === 'ตีกลับแก้ไข') {
+                const banner = document.getElementById('return-reason-banner');
+                const reasonText = document.getElementById('return-reason-text');
+                if (banner && reasonText) {
+                    reasonText.textContent = `เหตุผล: ${rowData.return_reason || '-'}`;
+                    banner.classList.remove('hidden');
+                }
+            }
             
             document.getElementById('create-section-title').innerHTML = `<i class="fa-solid fa-pen text-yellow-500 mr-2"></i>แก้ไขเอกสาร (ทับข้อมูลเดิมในแถวที่ ${editingRowNum})`;
             const submitBtn = document.getElementById('submitBtn');
@@ -2635,6 +2986,7 @@
 
         // --- Submit Form (Intercept with Signature Check) ---
         let pendingSubmitEvent = null;
+        let pendingApprovalTimestamp = null;
 
         function handleFormSubmit(e) {
             e.preventDefault();
@@ -2665,6 +3017,7 @@
             document.getElementById('signatureRequiredModal').classList.add('hidden');
             document.getElementById('signatureRequiredModal').classList.remove('flex');
             pendingSubmitEvent = null;
+            pendingApprovalTimestamp = null;
         }
 
         // บันทึกลายเซ็นใหม่แล้วส่งเอกสารต่อ
@@ -2715,8 +3068,12 @@
                     // ปิด Modal
                     closeSignatureRequiredModal();
                     
-                    // รันคำสั่ง Submit เอกสารต่อ
-                    executeSubmit();
+                    // รันคำสั่ง Submit เอกสารต่อ หรือ อนุมัติเอกสารต่อ
+                    if (pendingApprovalTimestamp) {
+                        approveDocumentStatus(pendingApprovalTimestamp, 'อนุมัติแล้ว');
+                    } else {
+                        executeSubmit();
+                    }
                 } else {
                     showToast('❌ บันทึกลายเซ็นไม่สำเร็จ: ' + result.message, 'error');
                 }
@@ -2861,8 +3218,9 @@
                 }
                 payload.attachments = attachedFilesBase64;
                 
-                // --- แปะลายเซ็นไปกับข้อมูลดิบด้วย เพื่อให้พรีวิวสามารถดึงไปใช้ได้ ---
+                // --- แปะลายเซ็นและอีเมลผู้สร้างไปกับข้อมูลดิบด้วย เพื่อให้พรีวิวสามารถดึงไปใช้ได้ ---
                 payload.signature = currentUser.signature;
+                payload.creator_email = editingCreatorEmail || currentUser.email;
 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -2979,6 +3337,52 @@
             if (e.target === this) closePopup();
         });
 
+        // ==========================================
+        // ระบบยืนยันแบบกำหนดเอง (Custom Confirm Modal)
+        // ==========================================
+        function showCustomConfirm({ title, message, iconClass, buttonText, buttonColorClass, onConfirm }) {
+            const modal = document.getElementById('customConfirmModal');
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalMessage').textContent = message;
+            
+            const iconContainer = modal.querySelector('.rounded-full');
+            const icon = document.getElementById('confirmModalIcon');
+            // Reset icon container classes
+            iconContainer.className = "mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4";
+            
+            // Set styles based on buttons
+            if (buttonColorClass.includes('green') || buttonColorClass.includes('emerald')) {
+                iconContainer.classList.add('bg-green-500/20', 'border', 'border-green-500/30');
+                icon.className = iconClass || 'fa-solid fa-file-signature text-green-400 text-3xl';
+            } else if (buttonColorClass.includes('red') || buttonColorClass.includes('rose')) {
+                iconContainer.classList.add('bg-red-500/20', 'border', 'border-red-500/30');
+                icon.className = iconClass || 'fa-solid fa-triangle-exclamation text-red-400 text-3xl';
+            } else {
+                iconContainer.classList.add('bg-yellow-500/20', 'border', 'border-yellow-500/30');
+                icon.className = iconClass || 'fa-solid fa-file-signature text-yellow-400 text-3xl';
+            }
+
+            const okBtn = document.getElementById('btnConfirmOk');
+            okBtn.className = `px-5 py-2.5 text-white rounded-lg text-sm font-bold transition flex items-center gap-1 ${buttonColorClass}`;
+            okBtn.innerHTML = `<i class="fa-solid fa-check mr-1"></i> ${buttonText}`;
+            
+            okBtn.onclick = () => {
+                closeCustomConfirm();
+                if (onConfirm) onConfirm();
+            };
+            
+            document.getElementById('btnConfirmCancel').onclick = closeCustomConfirm;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCustomConfirm() {
+            const modal = document.getElementById('customConfirmModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
         function showStatus(message, type) {
             const statusDiv = document.getElementById('statusMessage');
             statusDiv.classList.remove('hidden', 'bg-green-500/20', 'text-green-400', 'border-green-500/50', 'bg-red-500/20', 'text-red-400', 'border-red-500/50');
@@ -2996,6 +3400,8 @@
         }
 
         let currentPageHistory = 1;
+        let currentPageEdit = 1;
+        let currentPageBudget = 1;
         const itemsPerPageHistory = 10;
 
         async function loadHistory() {
@@ -3003,11 +3409,13 @@
             const historyTbody = document.getElementById('historyTableBody');
             const downloadTbody = document.getElementById('downloadTableBody');
             const editTbody = document.getElementById('editTableBody'); 
+            const budgetTbody = document.getElementById('budgetTableBody');
 
             const loadingHtml = `<tr><td colspan="7" class="p-8 text-center text-blue-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังโหลดข้อมูล...</td></tr>`;
             if (historyTbody) historyTbody.innerHTML = loadingHtml;
             if (downloadTbody) downloadTbody.innerHTML = loadingHtml;
             if (editTbody) editTbody.innerHTML = loadingHtml;
+            if (budgetTbody) budgetTbody.innerHTML = loadingHtml;
 
             clearPagination();
 
@@ -3017,15 +3425,100 @@
                 
                 if (data && data.length > 0) {
                     window.appHistoryData = data.reverse();
+                    
+                    // Filter history for current user (unless admin)
+                    const userRole = (currentUser && currentUser.role || '').toLowerCase();
+                    if (userRole === 'admin') {
+                        window.filteredHistoryData = window.appHistoryData;
+                        window.filteredEditData = window.appHistoryData.filter(row => row.status !== 'อนุมัติแล้ว');
+                    } else {
+                        const myFullName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
+                        const myEmail = (currentUser.email || '').toLowerCase().trim();
+                        window.filteredHistoryData = window.appHistoryData.filter(row => {
+                            let creatorEmail = '';
+                            try {
+                                if (row.raw_json) {
+                                    const raw = JSON.parse(row.raw_json);
+                                    if (raw && raw.creator_email) {
+                                        creatorEmail = raw.creator_email.toLowerCase().trim();
+                                    }
+                                }
+                            } catch (e) {}
+                            
+                            if (creatorEmail) {
+                                return creatorEmail === myEmail;
+                            }
+                            
+                            const docName = (row.name || '').trim();
+                            return docName === myFullName;
+                        });
+                        window.filteredEditData = window.filteredHistoryData.filter(row => row.status !== 'อนุมัติแล้ว');
+                    }
+
+                    // Update sidebar badge counts
+                    updateSidebarBadges(window.appHistoryData, window.filteredEditData);
+
                     currentPageHistory = 1; 
+                    currentPageEdit = 1;
+                    currentPageBudget = 1;
                     renderTables();
+                    
+                    const approveTbody = document.getElementById('approveTableBody');
+                    if (approveTbody) renderApproveTable();
+                    if (budgetTbody) renderBudgetTable();
                 } else {
+                    window.appHistoryData = [];
+                    window.filteredHistoryData = [];
+                    updateSidebarBadges([], []);
                     renderEmptyState();
+                    const approveTbody = document.getElementById('approveTableBody');
+                    if (approveTbody) approveTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลรออนุมัติ</td></tr>`;
+                    if (budgetTbody) budgetTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีเอกสารที่ได้รับการอนุมัติ</td></tr>`;
                 }
 
             } catch (error) {
                 console.error("Error fetching history:", error);
                 renderErrorState();
+            }
+        }
+
+        function updateSidebarBadges(unfilteredData, filteredData) {
+            // 1. Edit Document Badge: Count of rows in filteredData with status === 'ตีกลับแก้ไข'
+            const editCount = filteredData.filter(row => row.status === 'ตีกลับแก้ไข').length;
+            const badgeEdit = document.getElementById('badge-edit');
+            if (badgeEdit) {
+                if (editCount > 0) {
+                    badgeEdit.textContent = editCount;
+                    badgeEdit.classList.remove('hidden');
+                } else {
+                    badgeEdit.classList.add('hidden');
+                }
+            }
+
+            // 2. Approve Document Badge: Count of rows in unfilteredData with status === 'รอตรวจสอบ'
+            const approveCount = unfilteredData.filter(row => row.status === 'รอตรวจสอบ').length;
+            const badgeApprove = document.getElementById('badge-approve');
+            if (badgeApprove) {
+                const userRole = (currentUser && currentUser.role || '').toLowerCase();
+                if ((userRole === 'admin' || userRole === 'manager') && approveCount > 0) {
+                    badgeApprove.textContent = approveCount;
+                    badgeApprove.classList.remove('hidden');
+                } else {
+                    badgeApprove.classList.add('hidden');
+                }
+            }
+
+            // 3. Budget Badge: Count of rows in unfilteredData with status === 'อนุมัติแล้ว' && (!row.budget_link || row.budget_link === '-')
+            const budgetCount = unfilteredData.filter(row => row.status === 'อนุมัติแล้ว' && (!row.budget_link || row.budget_link === '-')).length;
+            const badgeBudget = document.getElementById('badge-budget');
+            if (badgeBudget) {
+                const userRole = (currentUser && currentUser.role || '').toLowerCase();
+                if ((userRole === 'admin' || userRole === 'manager') && budgetCount > 0) {
+                    badgeBudget.textContent = budgetCount;
+                    badgeBudget.classList.remove('hidden');
+                } else {
+                    badgeBudget.classList.add('hidden');
+                }
             }
         }
 
@@ -3041,27 +3534,350 @@
         }
 
         function clearPagination() {
-            ['historyPagination', 'downloadPagination', 'editPagination'].forEach(id => {
+            ['historyPagination', 'downloadPagination', 'editPagination', 'budgetPagination'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = '';
             });
         }
 
+        function createRowHtml(row, actualIndex, isEdit) {
+            let displayAmount = parseFloat(row.amount || 0);
+            try {
+                if (row.raw_json) {
+                    const raw = JSON.parse(row.raw_json);
+                    if (raw && raw.documents) {
+                        const receiptDoc = raw.documents.find(d => d.doc_type === 'ใบรับเงิน');
+                        if (receiptDoc) {
+                            displayAmount = parseFloat(receiptDoc.amount || 0);
+                        }
+                    }
+                }
+            } catch(e) {}
+
+            const amountStr = displayAmount.toLocaleString('th-TH', {minimumFractionDigits: 2});
+            const docType = row.category || row.doc_type || '-';
+
+            let displayDate = row.date || '-';
+            if (row.timestamp) {
+                const d = new Date(row.timestamp);
+                if (!isNaN(d.getTime())) {
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear() + 543; 
+                    const hours = String(d.getHours()).padStart(2, '0');
+                    const minutes = String(d.getMinutes()).padStart(2, '0');
+                    displayDate = `<span class="whitespace-nowrap">${day}/${month}/${year} <span class="text-gray-400 text-xs ml-1">${hours}:${minutes} น.</span></span>`;
+                }
+            }
+
+            let attachmentBtnHtml = '';
+            if (row.attachments && row.attachments !== '-' && !row.attachments.startsWith('[')) {
+                attachmentBtnHtml = `
+                    <button onclick="viewAttachments(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600 hover:text-white rounded-lg transition shadow" title="ดูไฟล์แนบ">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </button>
+                `;
+            }
+
+            let budgetBtnHtml = '';
+            if (row.budget_link && row.budget_link !== '-') {
+                budgetBtnHtml = `
+                    <a href="${row.budget_link}" target="_blank" class="w-8 h-8 flex items-center justify-center bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600 hover:text-white rounded-lg transition shadow" title="ดาวน์โหลด/ดูงบประมาณ (Budget)">
+                        <i class="fa-solid fa-wallet"></i>
+                    </a>
+                `;
+            } else {
+                budgetBtnHtml = `
+                    <button disabled class="w-8 h-8 flex items-center justify-center bg-gray-800/80 text-gray-600 border border-gray-700/30 rounded-lg cursor-not-allowed" title="ยังไม่มีเอกสารงบประมาณ (Budget)">
+                        <i class="fa-solid fa-wallet"></i>
+                    </button>
+                `;
+            }
+
+            const actionButtonsHtml = `
+                <div class="flex justify-center items-center gap-2">
+                    <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                    ${attachmentBtnHtml}
+                    ${budgetBtnHtml}
+                </div>
+            `;
+
+            const editActionButtonsHtml = `
+                <div class="flex justify-center items-center gap-2">
+                    <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <button onclick="editDocument(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-yellow-600/20 text-yellow-500 border border-yellow-500/30 hover:bg-yellow-600 hover:text-white rounded-lg transition shadow" title="แก้ไขเอกสาร">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                </div>
+            `;
+
+            let mainDesc = (row.description || '-').replace(/\n/g, '<br>');
+            if (row.receipt_no && row.receipt_no !== '-') {
+                mainDesc += `<br><span class="text-xs text-blue-400/80 mt-1 inline-block"><i class="fa-solid fa-receipt mr-1"></i>ใบเสร็จ: ${row.receipt_no}</span>`;
+            }
+
+            let descHtml = '';
+            if ((row.description || '').length > 60 || (row.description || '').includes('\n') || (row.receipt_no && row.receipt_no !== '-')) {
+                descHtml = `
+                    <div class="min-w-[200px] max-w-[400px] whitespace-normal">
+                        <div class="text-sm line-clamp-2 overflow-hidden text-gray-300 transition-all duration-300 ease-in-out">${mainDesc}</div>
+                        <button onclick="const content = this.previousElementSibling; content.classList.toggle('line-clamp-2'); this.innerHTML = content.classList.contains('line-clamp-2') ? '<i class=\\'fa-solid fa-chevron-down mr-1\\'></i> ดูเพิ่มเติม' : '<i class=\\'fa-solid fa-chevron-up mr-1\\'></i> ย่อลง';" class="text-xs text-blue-400 hover:text-blue-300 mt-1.5 font-medium focus:outline-none transition-colors flex items-center">
+                            <i class="fa-solid fa-chevron-down mr-1"></i> ดูเพิ่มเติม
+                        </button>
+                    </div>
+                `;
+            } else {
+                descHtml = `<div class="text-sm text-gray-300 min-w-[200px] whitespace-normal">${mainDesc}</div>`;
+            }
+
+            if (row.status === 'ตีกลับแก้ไข' && row.return_reason && row.return_reason !== '-') {
+                descHtml += `
+                    <div class="mt-2 p-2 bg-orange-500/10 border border-orange-500/20 rounded-lg text-xs text-orange-400 max-w-[400px] whitespace-normal">
+                        <div class="font-semibold flex items-center gap-1 mb-0.5">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span>สาเหตุที่ต้องแก้ไข:</span>
+                        </div>
+                        <div class="text-gray-300">${row.return_reason.replace(/\n/g, '<br>')}</div>
+                    </div>
+                `;
+            }
+
+            const currentStatus = row.status || 'รอตรวจสอบ';
+            let statusBadgeHtml = '';
+            if (currentStatus === 'อนุมัติแล้ว') {
+                statusBadgeHtml = `<span class="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 text-xs rounded-full inline-block font-medium"><i class="fa-solid fa-circle-check mr-1"></i>อนุมัติแล้ว</span>`;
+            } else if (currentStatus === 'ตีกลับแก้ไข') {
+                statusBadgeHtml = `<span class="px-3 py-1.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 text-xs rounded-full inline-block font-medium"><i class="fa-solid fa-rotate-left mr-1"></i>ตีกลับแก้ไข</span>`;
+            } else if (currentStatus === 'ไม่อนุมัติ') {
+                statusBadgeHtml = `<span class="px-3 py-1.5 bg-red-500/20 text-red-400 border border-red-500/30 text-xs rounded-full inline-block font-medium"><i class="fa-solid fa-circle-xmark mr-1"></i>ไม่อนุมัติ</span>`;
+            } else {
+                statusBadgeHtml = `<span class="px-3 py-1.5 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 text-xs rounded-full inline-block font-medium"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i>รอตรวจสอบ</span>`;
+            }
+
+            const buttonsToUse = isEdit ? editActionButtonsHtml : actionButtonsHtml;
+
+            return `
+                <td class="px-5 py-4 whitespace-nowrap">${displayDate}</td>
+                <td class="px-5 py-4 font-medium text-white whitespace-nowrap">${row.name || '-'}</td>
+                <td class="px-5 py-4 whitespace-nowrap">
+                    <span class="px-3 py-1.5 bg-gray-700 text-xs rounded-md text-gray-300 inline-block shadow-sm">${docType}</span>
+                </td>
+                <td class="px-5 py-4">
+                    ${descHtml}
+                </td>
+                <td class="px-5 py-4 text-right font-medium text-blue-400 whitespace-nowrap">${amountStr} ฿</td>
+                <td class="px-5 py-4 text-center whitespace-nowrap">
+                    ${statusBadgeHtml}
+                </td>
+                <td class="px-5 py-4 text-center whitespace-nowrap">
+                    ${buttonsToUse}
+                </td>
+            `;
+        }
+
         function renderTables() {
+            renderHistoryAndDownloadTables();
+            renderEditTable();
+        }
+
+        function renderHistoryAndDownloadTables() {
             const historyTbody = document.getElementById('historyTableBody');
             const downloadTbody = document.getElementById('downloadTableBody');
-            const editTbody = document.getElementById('editTableBody'); 
-
             if (historyTbody) historyTbody.innerHTML = '';
             if (downloadTbody) downloadTbody.innerHTML = '';
-            if (editTbody) editTbody.innerHTML = '';
+
+            const historyData = window.filteredHistoryData || [];
+            if (historyData.length === 0) {
+                const emptyHtml = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลประวัติ</td></tr>`;
+                if (historyTbody) historyTbody.innerHTML = emptyHtml;
+                if (downloadTbody) downloadTbody.innerHTML = emptyHtml;
+                ['historyPagination', 'downloadPagination'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = '';
+                });
+                return;
+            }
 
             const startIndex = (currentPageHistory - 1) * itemsPerPageHistory;
             const endIndex = startIndex + itemsPerPageHistory;
-            const pageData = window.appHistoryData.slice(startIndex, endIndex);
+            const pageData = historyData.slice(startIndex, endIndex);
 
-            pageData.forEach((row, pageIndex) => {
-                const actualIndex = startIndex + pageIndex; 
+            pageData.forEach((row) => {
+                const actualIndex = window.appHistoryData.indexOf(row);
+                const trHtml = createRowHtml(row, actualIndex, false);
+
+                if (historyTbody) {
+                    const trHist = document.createElement('tr');
+                    trHist.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
+                    trHist.innerHTML = trHtml;
+                    historyTbody.appendChild(trHist);
+                }
+
+                if (downloadTbody) {
+                    const trDown = document.createElement('tr');
+                    trDown.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
+                    trDown.innerHTML = trHtml;
+                    downloadTbody.appendChild(trDown);
+                }
+            });
+
+            renderPaginationControls('history');
+        }
+
+        function renderEditTable() {
+            const editTbody = document.getElementById('editTableBody');
+            if (editTbody) editTbody.innerHTML = '';
+
+            const editData = window.filteredEditData || [];
+            if (editData.length === 0) {
+                const emptyHtml = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลเอกสารรอแก้ไข</td></tr>`;
+                if (editTbody) editTbody.innerHTML = emptyHtml;
+                const el = document.getElementById('editPagination');
+                if (el) el.innerHTML = '';
+                return;
+            }
+
+            const startIndex = (currentPageEdit - 1) * itemsPerPageHistory;
+            const endIndex = startIndex + itemsPerPageHistory;
+            const pageData = editData.slice(startIndex, endIndex);
+
+            pageData.forEach((row) => {
+                const actualIndex = window.appHistoryData.indexOf(row);
+                const trHtml = createRowHtml(row, actualIndex, true);
+
+                if (editTbody) {
+                    const trEdit = document.createElement('tr');
+                    trEdit.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
+                    trEdit.innerHTML = trHtml;
+                    editTbody.appendChild(trEdit);
+                }
+            });
+
+            renderPaginationControls('edit');
+        }
+
+        function renderPaginationControls(type) {
+            let data = [];
+            let currentPage = 1;
+            let paginationIds = [];
+
+            if (type === 'history') {
+                data = window.filteredHistoryData || [];
+                currentPage = currentPageHistory;
+                paginationIds = ['historyPagination', 'downloadPagination'];
+            } else if (type === 'edit') {
+                data = window.filteredEditData || [];
+                currentPage = currentPageEdit;
+                paginationIds = ['editPagination'];
+            } else if (type === 'budget') {
+                data = (window.appHistoryData || []).filter(row => row.status === 'อนุมัติแล้ว');
+                currentPage = currentPageBudget;
+                paginationIds = ['budgetPagination'];
+            }
+
+            const totalItems = data.length;
+            if (totalItems === 0) {
+                paginationIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = '';
+                });
+                return;
+            }
+
+            const totalPages = Math.ceil(totalItems / itemsPerPageHistory);
+            const startItem = (currentPage - 1) * itemsPerPageHistory + 1;
+            const endItem = Math.min(currentPage * itemsPerPageHistory, totalItems);
+            
+            const paginationHTML = `
+                <div class="flex flex-col sm:flex-row justify-between items-center w-full text-sm text-gray-400 gap-3">
+                    <div>
+                        แสดงข้อมูล ${startItem} ถึง ${endItem} จากทั้งหมด ${totalItems} รายการ
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changePage('${type}', ${currentPage - 1})" ${currentPage === 1 ? 'disabled class="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700/50"' : 'class="w-8 h-8 flex items-center justify-center rounded bg-gray-700 text-white hover:bg-gray-600 transition border border-gray-600"'}><i class="fa-solid fa-angles-left"></i></button>
+                        
+                        <span class="px-3 py-1 font-medium text-white bg-gray-800 rounded border border-gray-700/50">หน้า ${currentPage} / ${totalPages}</span>
+                        
+                        <button onclick="changePage('${type}', ${currentPage + 1})" ${currentPage === totalPages ? 'disabled class="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700/50"' : 'class="w-8 h-8 flex items-center justify-center rounded bg-gray-700 text-white hover:bg-gray-600 transition border border-gray-600"'}><i class="fa-solid fa-angles-right"></i></button>
+                    </div>
+                </div>
+            `;
+
+            paginationIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = paginationHTML;
+            });
+        }
+
+        function changePage(type, newPage) {
+            if (type === 'history') {
+                const historyData = window.filteredHistoryData || [];
+                const totalPages = Math.ceil(historyData.length / itemsPerPageHistory);
+                if (newPage >= 1 && newPage <= totalPages) {
+                    currentPageHistory = newPage;
+                    renderHistoryAndDownloadTables();
+                }
+            } else if (type === 'edit') {
+                const editData = window.filteredEditData || [];
+                const totalPages = Math.ceil(editData.length / itemsPerPageHistory);
+                if (newPage >= 1 && newPage <= totalPages) {
+                    currentPageEdit = newPage;
+                    renderEditTable();
+                }
+            } else if (type === 'budget') {
+                const budgetData = (window.appHistoryData || []).filter(row => row.status === 'อนุมัติแล้ว');
+                const totalPages = Math.ceil(budgetData.length / itemsPerPageHistory);
+                if (newPage >= 1 && newPage <= totalPages) {
+                    currentPageBudget = newPage;
+                    renderBudgetTable();
+                }
+            }
+        }
+
+        function renderErrorState() {
+            const errorHtml = `
+                    <tr><td colspan="7" class="p-4 text-center text-red-400 bg-red-900/20 text-sm">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> ไม่สามารถดึงข้อมูลได้ (แสดงข้อมูลตัวอย่าง)<br>
+                        <span class="text-gray-500 text-xs">ตรวจสอบว่า Apps Script รองรับ GET Request และคืนค่า JSON หรือไม่</span>
+                    </td></tr>
+                `;
+            const historyTbody = document.getElementById('historyTableBody');
+            const downloadTbody = document.getElementById('downloadTableBody');
+            const editTbody = document.getElementById('editTableBody'); 
+            const budgetTbody = document.getElementById('budgetTableBody');
+            if (historyTbody) historyTbody.innerHTML = errorHtml;
+            if (downloadTbody) downloadTbody.innerHTML = errorHtml;
+            if (editTbody) editTbody.innerHTML = errorHtml;
+            if (budgetTbody) budgetTbody.innerHTML = errorHtml;
+            clearPagination();
+            
+            const approveTbody = document.getElementById('approveTableBody');
+            if (approveTbody) approveTbody.innerHTML = errorHtml;
+        }
+
+        // ==========================================
+        // ระบบอนุมัติเอกสาร (Approve Document System)
+        // ==========================================
+        function renderApproveTable() {
+            const approveTbody = document.getElementById('approveTableBody');
+            if (!approveTbody) return;
+            
+            approveTbody.innerHTML = '';
+            
+            if (!window.appHistoryData || window.appHistoryData.length === 0) {
+                approveTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลรออนุมัติ</td></tr>`;
+                return;
+            }
+            
+            let renderedCount = 0;
+            window.appHistoryData.forEach((row, actualIndex) => {
+                // กรองและไม่แสดงเอกสารที่ได้รับการอนุมัติแล้ว
+                if (row.status === 'อนุมัติแล้ว') return;
+                renderedCount++;
                 
                 let displayAmount = parseFloat(row.amount || 0);
                 try {
@@ -3092,40 +3908,288 @@
                     }
                 }
 
-                let attachmentBtnHtml = '';
-                if (row.attachments && row.attachments !== '-' && !row.attachments.startsWith('[')) {
-                    attachmentBtnHtml = `
-                        <button onclick="viewAttachments(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600 hover:text-white rounded-lg transition shadow" title="ดูไฟล์แนบ">
-                            <i class="fa-solid fa-paperclip"></i>
-                        </button>
+                let fullDesc = (row.description || '-').replace(/\n/g, '<br>');
+                if (row.receipt_no && row.receipt_no !== '-') {
+                    fullDesc += `<br><span class="text-xs text-blue-400/80 mt-1 inline-block"><i class="fa-solid fa-receipt mr-1"></i>ใบเสร็จ: ${row.receipt_no}</span>`;
+                }
+
+                let descHtml = '';
+                if ((row.description || '').length > 60 || (row.description || '').includes('\n') || (row.receipt_no && row.receipt_no !== '-')) {
+                    descHtml = `
+                        <div class="min-w-[200px] max-w-[400px] whitespace-normal">
+                            <div class="text-sm line-clamp-2 overflow-hidden text-gray-300 transition-all duration-300 ease-in-out">${fullDesc}</div>
+                            <button onclick="const content = this.previousElementSibling; content.classList.toggle('line-clamp-2'); this.innerHTML = content.classList.contains('line-clamp-2') ? '<i class=\\'fa-solid fa-chevron-down mr-1\\'></i> ดูเพิ่มเติม' : '<i class=\\'fa-solid fa-chevron-up mr-1\\'></i> ย่อลง';" class="text-xs text-blue-400 hover:text-blue-300 mt-1.5 font-medium focus:outline-none transition-colors flex items-center">
+                                <i class="fa-solid fa-chevron-down mr-1"></i> ดูเพิ่มเติม
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    descHtml = `<div class="text-sm text-gray-300 min-w-[200px] whitespace-normal">${fullDesc}</div>`;
+                }
+
+                const currentStatus = row.status || 'รอตรวจสอบ';
+                let statusBadgeHtml = '';
+                let actionButtonsHtml = '';
+
+                if (currentStatus === 'อนุมัติแล้ว') {
+                    statusBadgeHtml = `<span class="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 text-xs rounded-full inline-block font-medium"><i class="fa-solid fa-circle-check mr-1"></i>อนุมัติแล้ว</span>`;
+                    actionButtonsHtml = `
+                        <div class="flex justify-center items-center gap-2">
+                            <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <span class="text-xs text-gray-500">ดำเนินการเสร็จสิ้น</span>
+                        </div>
+                    `;
+                } else if (currentStatus === 'ตีกลับแก้ไข') {
+                    statusBadgeHtml = `<span class="px-3 py-1.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 text-xs rounded-full inline-block font-medium"><i class="fa-solid fa-rotate-left mr-1"></i>ตีกลับแก้ไข</span>`;
+                    actionButtonsHtml = `
+                        <div class="flex justify-center items-center gap-2">
+                            <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <span class="text-xs text-orange-400/65 font-medium">ตีกลับแก้ไขแล้ว</span>
+                        </div>
+                    `;
+                } else if (currentStatus === 'ไม่อนุมัติ') {
+                    statusBadgeHtml = `<span class="px-3 py-1.5 bg-red-500/20 text-red-400 border border-red-500/30 text-xs rounded-full inline-block font-medium"><i class="fa-solid fa-circle-xmark mr-1"></i>ไม่อนุมัติ</span>`;
+                    actionButtonsHtml = `
+                        <div class="flex justify-center items-center gap-2">
+                            <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <span class="text-xs text-red-400/65 font-medium">ไม่อนุมัติ</span>
+                        </div>
+                    `;
+                } else {
+                    statusBadgeHtml = `<span class="px-3 py-1.5 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 text-xs rounded-full inline-block font-medium"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i>รอตรวจสอบ</span>`;
+                    actionButtonsHtml = `
+                        <div class="flex justify-center items-center gap-1.5">
+                            <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button onclick="approveDocumentStatus('${row.timestamp}', 'อนุมัติแล้ว')" class="px-2.5 py-1.5 flex items-center justify-center bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold transition shadow hover:shadow-green-500/20" title="อนุมัติ">
+                                <i class="fa-solid fa-check mr-1"></i>อนุมัติ
+                            </button>
+                            <button onclick="returnDocumentForEdit('${row.timestamp}')" class="px-2.5 py-1.5 flex items-center justify-center bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-semibold transition shadow hover:shadow-orange-500/20" title="ตีกลับแก้ไข">
+                                <i class="fa-solid fa-rotate-left mr-1"></i>ตีกลับแก้ไข
+                            </button>
+                        </div>
                     `;
                 }
 
-                const actionButtonsHtml = `
-                    <div class="flex justify-center items-center gap-2">
-                        <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
-                            <i class="fa-solid fa-eye"></i>
-                        </button>
-                        ${attachmentBtnHtml}
-                        <button onclick="alert('กำลังพัฒนาระบบดาวน์โหลด PDF...')" class="w-8 h-8 flex items-center justify-center bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600 hover:text-white rounded-lg transition shadow" title="ดาวน์โหลด PDF">
-                            <i class="fa-solid fa-file-pdf"></i>
-                        </button>
-                        <button onclick="alert('กำลังพัฒนาระบบดาวน์โหลด Excel...')" class="w-8 h-8 flex items-center justify-center bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600 hover:text-white rounded-lg transition shadow" title="ดาวน์โหลด Excel">
-                            <i class="fa-solid fa-file-excel"></i>
-                        </button>
-                    </div>
+                const trHtml = `
+                    <td class="px-5 py-4 whitespace-nowrap">${displayDate}</td>
+                    <td class="px-5 py-4 font-medium text-white whitespace-nowrap">${row.name || '-'}</td>
+                    <td class="px-5 py-4 whitespace-nowrap">
+                        <span class="px-3 py-1.5 bg-gray-700 text-xs rounded-md text-gray-300 inline-block shadow-sm">${docType}</span>
+                    </td>
+                    <td class="px-5 py-4">
+                        ${descHtml}
+                    </td>
+                    <td class="px-5 py-4 text-right font-medium text-blue-400 whitespace-nowrap">${amountStr} ฿</td>
+                    <td class="px-5 py-4 text-center whitespace-nowrap">
+                        ${statusBadgeHtml}
+                    </td>
+                    <td class="px-5 py-4 text-center whitespace-nowrap">
+                        ${actionButtonsHtml}
+                    </td>
                 `;
 
-                const editActionButtonsHtml = `
-                    <div class="flex justify-center items-center gap-2">
-                        <button onclick="openPreview(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded-lg transition shadow" title="พรีวิวเอกสาร">
-                            <i class="fa-solid fa-eye"></i>
-                        </button>
-                        <button onclick="editDocument(${actualIndex})" class="w-8 h-8 flex items-center justify-center bg-yellow-600/20 text-yellow-500 border border-yellow-500/30 hover:bg-yellow-600 hover:text-white rounded-lg transition shadow" title="แก้ไขเอกสาร">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
-                    </div>
-                `;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
+                tr.innerHTML = trHtml;
+                approveTbody.appendChild(tr);
+            });
+
+            if (renderedCount === 0) {
+                approveTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลรออนุมัติ</td></tr>`;
+            }
+        }
+
+        async function approveDocumentStatus(timestamp, newStatus) {
+            if (!currentUser) return;
+
+            // เช็คว่ามีลายเซ็นในระบบหรือยัง
+            if (newStatus === 'อนุมัติแล้ว' && !currentUser.signature) {
+                pendingApprovalTimestamp = timestamp;
+                showSignatureRequiredModal();
+                return;
+            }
+
+            const title = newStatus === 'อนุมัติแล้ว' ? 'ยืนยันการอนุมัติเอกสาร' : 'ยืนยันการดำเนินการ';
+            const msg = newStatus === 'อนุมัติแล้ว' 
+                ? 'คุณแน่ใจหรือไม่ที่จะอนุมัติเอกสารรายการนี้? เมื่ออนุมัติแล้วระบบจะประทับลายเซ็นของคุณลงในเอกสารโดยอัตโนมัติ' 
+                : 'คุณแน่ใจหรือไม่ที่จะดำเนินการกับเอกสารรายการนี้?';
+            const icon = 'fa-solid fa-file-signature text-green-400 text-3xl';
+            const btnColor = 'bg-green-600 hover:bg-green-500';
+            const btnText = 'ยืนยันอนุมัติ';
+
+            showCustomConfirm({
+                title: title,
+                message: msg,
+                iconClass: icon,
+                buttonText: btnText,
+                buttonColorClass: btnColor,
+                onConfirm: () => executeApproveStatus(timestamp, newStatus)
+            });
+        }
+
+        async function executeApproveStatus(timestamp, newStatus) {
+            showToast('⏳ กำลังบันทึกสถานะใหม่...', 'warning');
+
+            try {
+                const response = await fetch(GS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'update_status',
+                        userEmail: currentUser.email,
+                        timestamp: timestamp,
+                        status: newStatus,
+                        approverSignature: newStatus === 'อนุมัติแล้ว' ? (currentUser.signature || '') : null
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast('✔ ' + result.message, 'success');
+                    showPopup('บันทึกสถานะสำเร็จ!', result.message, 'success');
+                    loadHistory();
+                } else {
+                    showToast('❌ ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error("Error updating document status:", error);
+                showToast('❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+            }
+        }
+
+        // ==========================================
+        // ระบบตีกลับแก้ไข (Return for Editing System)
+        // ==========================================
+        let returnTargetTimestamp = null;
+
+        function returnDocumentForEdit(timestamp) {
+            returnTargetTimestamp = timestamp;
+            document.getElementById('txtReturnReason').value = '';
+            document.getElementById('returnReasonModal').classList.remove('hidden');
+            document.getElementById('returnReasonModal').classList.add('flex');
+            
+            document.getElementById('btnConfirmReturn').onclick = confirmReturnDocument;
+        }
+
+        function closeReturnReasonModal() {
+            document.getElementById('returnReasonModal').classList.add('hidden');
+            document.getElementById('returnReasonModal').classList.remove('flex');
+            returnTargetTimestamp = null;
+        }
+
+        async function confirmReturnDocument() {
+            if (!currentUser || !returnTargetTimestamp) return;
+            const reason = document.getElementById('txtReturnReason').value.trim();
+            if (!reason) {
+                alert('กรุณาระบุเหตุผลการตีกลับแก้ไข เพื่อให้ผู้สร้างเอกสารแก้ไขได้ถูกต้องครับ');
+                return;
+            }
+
+            const btn = document.getElementById('btnConfirmReturn');
+            btn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังส่งกลับ...';
+
+            showToast('⏳ กำลังดำเนินการตีกลับแก้ไข...', 'warning');
+
+            try {
+                const response = await fetch(GS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'update_status',
+                        userEmail: currentUser.email,
+                        timestamp: returnTargetTimestamp,
+                        status: 'ตีกลับแก้ไข',
+                        returnReason: reason
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast('✔ ' + result.message, 'success');
+                    showPopup('ตีกลับแก้ไขสำเร็จ!', result.message, 'success');
+                    closeReturnReasonModal();
+                    loadHistory();
+                } else {
+                    showToast('❌ ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error("Error returning document:", error);
+                showToast('❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        // ==========================================
+        // ระบบแนบงบประมาณ (Budget Management System)
+        // ==========================================
+        function renderBudgetTable() {
+            const budgetTbody = document.getElementById('budgetTableBody');
+            if (!budgetTbody) return;
+            
+            budgetTbody.innerHTML = '';
+            
+            if (!window.appHistoryData || window.appHistoryData.length === 0) {
+                budgetTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีเอกสารที่ได้รับการอนุมัติ</td></tr>`;
+                const el = document.getElementById('budgetPagination');
+                if (el) el.innerHTML = '';
+                return;
+            }
+            
+            const approvedRows = window.appHistoryData.filter(row => row.status === 'อนุมัติแล้ว');
+            if (approvedRows.length === 0) {
+                budgetTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีเอกสารที่ได้รับการอนุมัติ</td></tr>`;
+                const el = document.getElementById('budgetPagination');
+                if (el) el.innerHTML = '';
+                return;
+            }
+            
+            const startIndex = (currentPageBudget - 1) * itemsPerPageHistory;
+            const endIndex = startIndex + itemsPerPageHistory;
+            const pageData = approvedRows.slice(startIndex, endIndex);
+            
+            pageData.forEach((row) => {
+                const actualIndex = window.appHistoryData.indexOf(row);
+                
+                let displayAmount = parseFloat(row.amount || 0);
+                try {
+                    if (row.raw_json) {
+                        const raw = JSON.parse(row.raw_json);
+                        if (raw && raw.documents) {
+                            const receiptDoc = raw.documents.find(d => d.doc_type === 'ใบรับเงิน');
+                            if (receiptDoc) {
+                                displayAmount = parseFloat(receiptDoc.amount || 0);
+                            }
+                        }
+                    }
+                } catch(e) {}
+
+                const amountStr = displayAmount.toLocaleString('th-TH', {minimumFractionDigits: 2});
+                const docType = row.category || row.doc_type || '-';
+
+                let displayDate = row.date || '-';
+                if (row.timestamp) {
+                    const d = new Date(row.timestamp);
+                    if (!isNaN(d.getTime())) {
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear() + 543; 
+                        const hours = String(d.getHours()).padStart(2, '0');
+                        const minutes = String(d.getMinutes()).padStart(2, '0');
+                        displayDate = `<span class="whitespace-nowrap">${day}/${month}/${year} <span class="text-gray-400 text-xs ml-1">${hours}:${minutes} น.</span></span>`;
+                    }
+                }
 
                 let fullDesc = (row.description || '-').replace(/\n/g, '<br>');
                 if (row.receipt_no && row.receipt_no !== '-') {
@@ -3146,6 +4210,32 @@
                     descHtml = `<div class="text-sm text-gray-300 min-w-[200px] whitespace-normal">${fullDesc}</div>`;
                 }
 
+                const statusBadgeHtml = `<span class="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 text-xs rounded-full inline-block font-medium"><i class="fa-solid fa-circle-check mr-1"></i>อนุมัติแล้ว</span>`;
+                
+                let actionButtonsHtml = '';
+                if (row.budget_link && row.budget_link !== '-') {
+                    actionButtonsHtml = `
+                        <div class="flex justify-center items-center gap-2">
+                            <a href="${row.budget_link}" target="_blank" class="px-2.5 py-1.5 flex items-center justify-center bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600 hover:text-white rounded-lg text-xs font-semibold transition shadow hover:shadow-green-500/20" title="ดูงบประมาณ">
+                                <i class="fa-solid fa-file-invoice mr-1"></i>ดูงบประมาณ
+                            </a>
+                            <input type="file" id="budget-file-${actualIndex}" accept="image/*,application/pdf" class="hidden" onchange="uploadBudgetFile('${row.timestamp}', this)">
+                            <button onclick="document.getElementById('budget-file-${actualIndex}').click()" class="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition" title="เปลี่ยนไฟล์งบประมาณ">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    actionButtonsHtml = `
+                        <div class="flex justify-center items-center gap-2">
+                            <input type="file" id="budget-file-${actualIndex}" accept="image/*,application/pdf" class="hidden" onchange="uploadBudgetFile('${row.timestamp}', this)">
+                            <button onclick="document.getElementById('budget-file-${actualIndex}').click()" class="px-3 py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow hover:shadow-blue-500/20">
+                                <i class="fa-solid fa-cloud-arrow-up mr-1"></i>แนบงบประมาณ
+                            </button>
+                        </div>
+                    `;
+                }
+
                 const trHtml = `
                     <td class="px-5 py-4 whitespace-nowrap">${displayDate}</td>
                     <td class="px-5 py-4 font-medium text-white whitespace-nowrap">${row.name || '-'}</td>
@@ -3157,92 +4247,62 @@
                     </td>
                     <td class="px-5 py-4 text-right font-medium text-blue-400 whitespace-nowrap">${amountStr} ฿</td>
                     <td class="px-5 py-4 text-center whitespace-nowrap">
-                        <span class="px-3 py-1.5 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 text-xs rounded-full inline-block">รอตรวจสอบ</span>
+                        ${statusBadgeHtml}
                     </td>
                     <td class="px-5 py-4 text-center whitespace-nowrap">
-                        REPLACE_ACTIONS
+                        ${actionButtonsHtml}
                     </td>
                 `;
 
-                if (historyTbody) {
-                    const trHist = document.createElement('tr');
-                    trHist.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
-                    trHist.innerHTML = trHtml.replace('REPLACE_ACTIONS', actionButtonsHtml);
-                    historyTbody.appendChild(trHist);
-                }
-
-                if (downloadTbody) {
-                    const trDown = document.createElement('tr');
-                    trDown.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
-                    trDown.innerHTML = trHtml.replace('REPLACE_ACTIONS', actionButtonsHtml);
-                    downloadTbody.appendChild(trDown);
-                }
-
-                if (editTbody) {
-                    const trEdit = document.createElement('tr');
-                    trEdit.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
-                    trEdit.innerHTML = trHtml.replace('REPLACE_ACTIONS', editActionButtonsHtml);
-                    editTbody.appendChild(trEdit);
-                }
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
+                tr.innerHTML = trHtml;
+                budgetTbody.appendChild(tr);
             });
-
-            renderPaginationControls();
-        }
-
-        function renderPaginationControls() {
-            const totalItems = window.appHistoryData.length;
-            if (totalItems === 0) {
-                clearPagination();
-                return;
-            }
-
-            const totalPages = Math.ceil(totalItems / itemsPerPageHistory);
-            const startItem = (currentPageHistory - 1) * itemsPerPageHistory + 1;
-            const endItem = Math.min(currentPageHistory * itemsPerPageHistory, totalItems);
             
-            const paginationHTML = `
-                <div class="flex flex-col sm:flex-row justify-between items-center w-full text-sm text-gray-400 gap-3">
-                    <div>
-                        แสดงข้อมูล ${startItem} ถึง ${endItem} จากทั้งหมด ${totalItems} รายการ
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="changePage(${currentPageHistory - 1})" ${currentPageHistory === 1 ? 'disabled class="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700/50"' : 'class="w-8 h-8 flex items-center justify-center rounded bg-gray-700 text-white hover:bg-gray-600 transition border border-gray-600"'}><i class="fa-solid fa-angles-left"></i></button>
-                        
-                        <span class="px-3 py-1 font-medium text-white bg-gray-800 rounded border border-gray-700/50">หน้า ${currentPageHistory} / ${totalPages}</span>
-                        
-                        <button onclick="changePage(${currentPageHistory + 1})" ${currentPageHistory === totalPages ? 'disabled class="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700/50"' : 'class="w-8 h-8 flex items-center justify-center rounded bg-gray-700 text-white hover:bg-gray-600 transition border border-gray-600"'}><i class="fa-solid fa-angles-right"></i></button>
-                    </div>
-                </div>
-            `;
-
-            ['historyPagination', 'downloadPagination', 'editPagination'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = paginationHTML;
-            });
+            renderPaginationControls('budget');
         }
 
-        function changePage(newPage) {
-            const totalPages = Math.ceil(window.appHistoryData.length / itemsPerPageHistory);
-            if (newPage >= 1 && newPage <= totalPages) {
-                currentPageHistory = newPage;
-                renderTables();
-            }
-        }
+        async function uploadBudgetFile(timestamp, fileInput) {
+            const file = fileInput.files[0];
+            if (!file) return;
 
-        function renderErrorState() {
-            const errorHtml = `
-                    <tr><td colspan="7" class="p-4 text-center text-red-400 bg-red-900/20 text-sm">
-                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> ไม่สามารถดึงข้อมูลได้ (แสดงข้อมูลตัวอย่าง)<br>
-                        <span class="text-gray-500 text-xs">ตรวจสอบว่า Apps Script รองรับ GET Request และคืนค่า JSON หรือไม่</span>
-                    </td></tr>
-                `;
-            const historyTbody = document.getElementById('historyTableBody');
-            const downloadTbody = document.getElementById('downloadTableBody');
-            const editTbody = document.getElementById('editTableBody'); 
-            if (historyTbody) historyTbody.innerHTML = errorHtml;
-            if (downloadTbody) downloadTbody.innerHTML = errorHtml;
-            if (editTbody) editTbody.innerHTML = errorHtml;
-            clearPagination();
+            showToast('⏳ กำลังเตรียมไฟล์และอัปโหลดงบประมาณ...', 'warning');
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const base64Data = reader.result.split(',')[1];
+                const payload = {
+                    action: 'upload_budget',
+                    timestamp: timestamp,
+                    budget_file: {
+                        name: file.name,
+                        mimeType: file.type,
+                        data: base64Data
+                    }
+                };
+
+                try {
+                    const response = await fetch(GS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        showToast('✔ ' + result.message, 'success');
+                        showPopup('แนบงบประมาณสำเร็จ!', result.message, 'success');
+                        loadHistory();
+                    } else {
+                        showToast('❌ ' + result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error("Error uploading budget:", error);
+                    showToast('❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+                }
+            };
+            reader.readAsDataURL(file);
         }
     </script>
 </body>
