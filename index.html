@@ -149,7 +149,7 @@
 
         /* === Success Popup Modal === */
         #successPopup {
-            position: fixed; inset: 0; z-index: 10000;
+            position: fixed; inset: 0; z-index: 30000;
             display: flex; align-items: center; justify-content: center;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
             opacity: 0; pointer-events: none;
@@ -1353,10 +1353,10 @@
                     document.getElementById('logPassword').value = '';
                     checkAuth();
                 } else {
-                    showToast('❌ ' + result.message, 'error');
+                    showPopup('เข้าสู่ระบบไม่สำเร็จ', result.message, 'error');
                 }
             } catch (err) {
-                showToast('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
+                showPopup('เชื่อมต่อล้มเหลว', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง', 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
@@ -1370,7 +1370,7 @@
             const confirmPassword = document.getElementById('regConfirmPassword').value;
 
             if (password !== confirmPassword) {
-                showToast('❌ รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน', 'error');
+                showPopup('รหัสผ่านไม่ตรงกัน', 'รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน', 'error');
                 return;
             }
 
@@ -1397,14 +1397,14 @@
                 const result = await response.json();
                 
                 if (result.status === 'success') {
-                    showToast('✅ ' + result.message, 'success');
+                    showPopup('สมัครสมาชิกสำเร็จ', result.message, 'success');
                     document.getElementById('logEmail').value = payload.email;
                     showLoginForm();
                 } else {
-                    showToast('❌ ' + result.message, 'error');
+                    showPopup('สมัครสมาชิกไม่สำเร็จ', result.message, 'error');
                 }
             } catch (err) {
-                showToast('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
+                showPopup('เชื่อมต่อล้มเหลว', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง', 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
@@ -3313,7 +3313,7 @@
             if (!toast) {
                 toast = document.createElement('div');
                 toast.id = 'globalToast';
-                toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;max-width:380px;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;transition:all 0.3s ease;';
+                toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:30000;max-width:380px;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;transition:all 0.3s ease;';
                 document.body.appendChild(toast);
             }
             
