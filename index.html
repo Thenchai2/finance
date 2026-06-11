@@ -989,42 +989,7 @@
                 </div>
             </section>
 
-            <!-- 4. ประวัติการทำ (History) -->
-            <section id="section-history" class="tab-section hidden animation-fade w-full">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-gray-700 pb-2 gap-3">
-                    <h2 class="text-2xl font-bold text-white">ประวัติใบเคลียร์เงิน</h2>
-                    <button onclick="loadHistory()" class="text-sm text-blue-400 hover:text-blue-300 flex items-center bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
-                        <i class="fa-solid fa-rotate mr-2"></i> รีเฟรชข้อมูล
-                    </button>
-                </div>
-                
-                <div class="bg-gray-800/80 rounded-xl shadow-lg border border-gray-700/50 overflow-hidden backdrop-blur-sm">
-                    <div class="overflow-x-auto w-full custom-scrollbar">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-900/80 text-gray-400 text-sm uppercase tracking-wider">
-                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">วันที่</th>
-                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">ผู้ขอเบิก/รับเงิน</th>
-                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">หมวดหมู่</th>
-                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50">รายละเอียด</th>
-                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-right">จำนวนเงิน</th>
-                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center">สถานะ</th>
-                                    <th class="px-5 py-4 font-medium border-b border-gray-700/50 text-center w-40">จัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historyTableBody" class="text-gray-300">
-                                <tr>
-                                    <td colspan="7" class="p-8 text-center text-gray-500">
-                                        กำลังโหลดประวัติ...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <!-- ส่วนปุ่มเปลี่ยนหน้า (Pagination) -->
-                    <div id="historyPagination" class="px-5 py-3 border-t border-gray-700/50 bg-gray-900/40"></div>
-                </div>
-            </section>
+
 
             <!-- 4.5 อนุมัติเอกสาร (Approve Document) -->
             <section id="section-approve" class="tab-section hidden animation-fade w-full">
@@ -1416,7 +1381,6 @@
                 localStorage.removeItem('clearanceUser');
                 currentUser = null;
                 
-                document.getElementById('historyTableBody').innerHTML = '';
                 document.getElementById('downloadTableBody').innerHTML = '';
                 document.getElementById('editTableBody').innerHTML = '';
                 const approveTbody = document.getElementById('approveTableBody');
@@ -1437,7 +1401,7 @@
             document.getElementById('userAvatar').textContent = currentUser.firstName.charAt(0).toUpperCase();
             
             // แสดงหรือซ่อนเมนูอนุมัติเอกสารตามสิทธิ์การใช้งาน
-            const userRole = (currentUser.role || "").toLowerCase();
+            const userRole = (currentUser.role || "").toLowerCase().trim();
             const isAdminOrManager = (userRole === 'admin' || userRole === 'manager');
 
             const navApprove = document.getElementById('nav-approve');
@@ -3451,7 +3415,6 @@
             setTimeout(() => statusDiv.classList.add('hidden'), 12000);
         }
 
-        let currentPageHistory = 1;
         let currentPageEdit = 1;
         let currentPageBudget = 1;
         let currentPageDownload = 1;
@@ -3459,13 +3422,11 @@
 
         async function loadHistory() {
             const url = GS_URL;
-            const historyTbody = document.getElementById('historyTableBody');
             const downloadTbody = document.getElementById('downloadTableBody');
             const editTbody = document.getElementById('editTableBody'); 
             const budgetTbody = document.getElementById('budgetTableBody');
 
             const loadingHtml = `<tr><td colspan="7" class="p-8 text-center text-blue-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังโหลดข้อมูล...</td></tr>`;
-            if (historyTbody) historyTbody.innerHTML = loadingHtml;
             if (downloadTbody) downloadTbody.innerHTML = loadingHtml;
             if (editTbody) editTbody.innerHTML = loadingHtml;
             if (budgetTbody) budgetTbody.innerHTML = loadingHtml;
@@ -3511,7 +3472,6 @@
                     // Update sidebar badge counts
                     updateSidebarBadges(window.appHistoryData, window.filteredEditData);
 
-                    currentPageHistory = 1; 
                     currentPageEdit = 1;
                     currentPageBudget = 1;
                     currentPageDownload = 1;
@@ -3567,7 +3527,7 @@
             const approveCount = unfilteredData.filter(row => row.status === 'รอตรวจสอบ').length;
             const badgeApprove = document.getElementById('badge-approve');
             if (badgeApprove) {
-                const userRole = (currentUser && currentUser.role || '').toLowerCase();
+                const userRole = (currentUser && currentUser.role || '').toLowerCase().trim();
                 if ((userRole === 'admin' || userRole === 'manager') && approveCount > 0) {
                     badgeApprove.textContent = approveCount;
                     badgeApprove.classList.remove('hidden');
@@ -3580,7 +3540,7 @@
             const budgetCount = unfilteredData.filter(row => row.status === 'อนุมัติแล้ว' && (!row.budget_link || row.budget_link === '-')).length;
             const badgeBudget = document.getElementById('badge-budget');
             if (badgeBudget) {
-                const userRole = (currentUser && currentUser.role || '').toLowerCase();
+                const userRole = (currentUser && currentUser.role || '').toLowerCase().trim();
                 if ((userRole === 'admin' || userRole === 'manager') && budgetCount > 0) {
                     badgeBudget.textContent = budgetCount;
                     badgeBudget.classList.remove('hidden');
@@ -3592,17 +3552,15 @@
 
         function renderEmptyState() {
              const emptyHtml = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลประวัติ</td></tr>`;
-             const historyTbody = document.getElementById('historyTableBody');
              const downloadTbody = document.getElementById('downloadTableBody');
              const editTbody = document.getElementById('editTableBody'); 
-             if (historyTbody) historyTbody.innerHTML = emptyHtml;
              if (downloadTbody) downloadTbody.innerHTML = emptyHtml;
              if (editTbody) editTbody.innerHTML = emptyHtml;
              clearPagination();
         }
 
         function clearPagination() {
-            ['historyPagination', 'downloadPagination', 'editPagination', 'budgetPagination'].forEach(id => {
+            ['downloadPagination', 'editPagination', 'budgetPagination'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = '';
             });
@@ -3748,41 +3706,8 @@
         }
 
         function renderTables() {
-            renderHistoryTable();
             renderDownloadTable();
             renderEditTable();
-        }
-
-        function renderHistoryTable() {
-            const historyTbody = document.getElementById('historyTableBody');
-            if (historyTbody) historyTbody.innerHTML = '';
-
-            const historyData = window.filteredHistoryData || [];
-            if (historyData.length === 0) {
-                const emptyHtml = `<tr><td colspan="7" class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลประวัติ</td></tr>`;
-                if (historyTbody) historyTbody.innerHTML = emptyHtml;
-                const el = document.getElementById('historyPagination');
-                if (el) el.innerHTML = '';
-                return;
-            }
-
-            const startIndex = (currentPageHistory - 1) * itemsPerPageHistory;
-            const endIndex = startIndex + itemsPerPageHistory;
-            const pageData = historyData.slice(startIndex, endIndex);
-
-            pageData.forEach((row) => {
-                const actualIndex = window.appHistoryData.indexOf(row);
-                const trHtml = createRowHtml(row, actualIndex, false);
-
-                if (historyTbody) {
-                    const trHist = document.createElement('tr');
-                    trHist.className = "hover:bg-gray-800/80 transition border-b border-gray-700/50 last:border-0";
-                    trHist.innerHTML = trHtml;
-                    historyTbody.appendChild(trHist);
-                }
-            });
-
-            renderPaginationControls('history');
         }
 
         function renderDownloadTable() {
@@ -3859,11 +3784,7 @@
             let currentPage = 1;
             let paginationIds = [];
 
-            if (type === 'history') {
-                data = window.filteredHistoryData || [];
-                currentPage = currentPageHistory;
-                paginationIds = ['historyPagination'];
-            } else if (type === 'download') {
+            if (type === 'download') {
                 data = window.filteredDownloadData || [];
                 currentPage = currentPageDownload;
                 paginationIds = ['downloadPagination'];
@@ -3914,14 +3835,7 @@
         }
 
         function changePage(type, newPage) {
-            if (type === 'history') {
-                const historyData = window.filteredHistoryData || [];
-                const totalPages = Math.ceil(historyData.length / itemsPerPageHistory);
-                if (newPage >= 1 && newPage <= totalPages) {
-                    currentPageHistory = newPage;
-                    renderHistoryTable();
-                }
-            } else if (type === 'download') {
+            if (type === 'download') {
                 const downloadData = window.filteredDownloadData || [];
                 const totalPages = Math.ceil(downloadData.length / itemsPerPageHistory);
                 if (newPage >= 1 && newPage <= totalPages) {
@@ -3954,11 +3868,9 @@
                         <span class="text-gray-500 text-xs">ตรวจสอบว่า Apps Script รองรับ GET Request และคืนค่า JSON หรือไม่</span>
                     </td></tr>
                 `;
-            const historyTbody = document.getElementById('historyTableBody');
             const downloadTbody = document.getElementById('downloadTableBody');
             const editTbody = document.getElementById('editTableBody'); 
             const budgetTbody = document.getElementById('budgetTableBody');
-            if (historyTbody) historyTbody.innerHTML = errorHtml;
             if (downloadTbody) downloadTbody.innerHTML = errorHtml;
             if (editTbody) editTbody.innerHTML = errorHtml;
             if (budgetTbody) budgetTbody.innerHTML = errorHtml;
