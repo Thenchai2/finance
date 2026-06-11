@@ -2530,19 +2530,22 @@
                 return;
             }
             
+            const isSectionActive = document.getElementById('chk-advance').checked;
+            const reqAttr = isSectionActive ? 'required' : '';
+            
             const rowCount = tbody.children.length + 1;
             const tr = document.createElement('tr');
             tr.className = "border-b border-gray-700/50 hover:bg-gray-800/30 transition adv-item-row";
             tr.innerHTML = `
                 <td class="p-2 text-center text-gray-400 row-index">${rowCount}</td>
                 <td class="p-2">
-                    <input type="text" placeholder="รายละเอียด" required class="item-desc w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <input type="text" placeholder="รายละเอียด" ${reqAttr} class="item-desc req-input-advance w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
                 </td>
                 <td class="p-2">
                     <input type="text" placeholder="เลขที่ใบเสร็จ" class="item-receipt w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
                 </td>
                 <td class="p-2">
-                    <input type="number" placeholder="0.00" step="0.01" required oninput="calculateAdvanceTotal()" class="item-amount w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-right">
+                    <input type="number" placeholder="0.00" step="0.01" ${reqAttr} oninput="calculateAdvanceTotal()" class="item-amount req-input-advance w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-right">
                 </td>
                 <td class="p-2 text-center">
                     <button type="button" onclick="removeAdvanceItemRow(this)" class="text-red-400 hover:text-red-300 transition p-1" title="ลบรายการ">
@@ -2610,13 +2613,17 @@
                 alert('ไม่สามารถเพิ่มรายการใบรับเงินได้เกิน 50 รายการครับ');
                 return;
             }
+            
+            const isSectionActive = document.getElementById('chk-receipt').checked;
+            const reqAttr = isSectionActive ? 'required' : '';
+            
             const rowCount = tbody.children.length + 1;
             const tr = document.createElement('tr');
             tr.className = "border-b border-gray-700/50 hover:bg-gray-800/30 transition rec-item-row";
             tr.innerHTML = `
                 <td class="p-2 text-center text-gray-400 row-index">${rowCount}</td>
                 <td class="p-2">
-                    <input type="text" placeholder="รายละเอียด" required class="item-desc w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500">
+                    <input type="text" placeholder="รายละเอียด" ${reqAttr} class="item-desc req-input-receipt w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500">
                 </td>
                 <td class="p-2">
                     <input type="number" placeholder="0" class="item-qty w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500 text-center" oninput="calculateReceiptRow(this)">
@@ -2625,7 +2632,7 @@
                     <input type="number" step="0.01" placeholder="0.00" class="item-unit w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500 text-center" oninput="calculateReceiptRow(this)">
                 </td>
                 <td class="p-2">
-                    <input type="number" placeholder="0.00" step="0.01" required readonly class="item-amount w-full bg-gray-600 border border-gray-500 text-gray-300 rounded px-3 py-2 text-sm focus:outline-none cursor-not-allowed text-right">
+                    <input type="number" placeholder="0.00" step="0.01" readonly class="item-amount req-input-receipt w-full bg-gray-600 border border-gray-500 text-gray-300 rounded px-3 py-2 text-sm focus:outline-none cursor-not-allowed text-right">
                 </td>
                 <td class="p-2 text-center">
                     <button type="button" onclick="removeReceiptItemRow(this)" class="text-red-400 hover:text-red-300 transition p-1" title="ลบรายการ">
@@ -2677,6 +2684,9 @@
             const container = document.getElementById('fuel_items_container');
             const itemCount = container.children.length + 1;
             
+            const isSectionActive = document.getElementById('chk-fuel').checked;
+            const reqAttr = isSectionActive ? 'required' : '';
+            
             const div = document.createElement('div');
             div.className = "fuel-item-card bg-gray-800/80 p-5 rounded-lg border border-gray-700 relative";
             div.innerHTML = `
@@ -2690,26 +2700,26 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-400 mb-1">วัตถุประสงค์</label>
-                        <input type="text" placeholder="เช่น เดินทางไปติดตั้งเครื่องป้อน MAX-T..." required class="fuel-objective req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="text" placeholder="เช่น เดินทางไปติดตั้งเครื่องป้อน MAX-T..." ${reqAttr} class="fuel-objective req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">เดินทางจาก (สถานที่เริ่มต้น)</label>
-                        <input type="text" placeholder="เช่น สำนักงานเขาย้อย" required class="fuel-from req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="text" placeholder="เช่น สำนักงานเขาย้อย" ${reqAttr} class="fuel-from req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">ถึง (สถานที่สิ้นสุด)</label>
-                        <input type="text" placeholder="เช่น ออฟฟิศ รัชดา" required class="fuel-to req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="text" placeholder="เช่น ออฟฟิศ รัชดา" ${reqAttr} class="fuel-to req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700/50">
                     <div>
                         <label class="block text-xs font-medium text-gray-400 mb-1">ระยะทางเริ่มต้น</label>
-                        <input type="number" placeholder="เช่น 52996" required oninput="calculateFuelRow(this)" class="fuel-start req-input-fuel w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="number" placeholder="เช่น 52996" ${reqAttr} oninput="calculateFuelRow(this)" class="fuel-start req-input-fuel w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-400 mb-1">ระยะทางสิ้นสุด</label>
-                        <input type="number" placeholder="เช่น 53270" required oninput="calculateFuelRow(this)" class="fuel-end req-input-fuel w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="number" placeholder="เช่น 53270" ${reqAttr} oninput="calculateFuelRow(this)" class="fuel-end req-input-fuel w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-400 mb-1">กิโลเมตร (คำนวณอัตโนมัติ)</label>
@@ -2721,7 +2731,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">มูลค่าน้ำมันที่เติม (บาท)</label>
-                        <input type="number" step="0.01" placeholder="เช่น 800.00" required oninput="calculateFuelGrandTotal()" class="fuel-actual-amount req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
+                        <input type="number" step="0.01" placeholder="เช่น 800.00" ${reqAttr} oninput="calculateFuelGrandTotal()" class="fuel-actual-amount req-input-fuel w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">มูลค่าตามบริษัทกำหนด (กม. x 3.25 บาท)</label>
