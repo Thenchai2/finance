@@ -8,6 +8,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+
     <!-- Google Fonts: Prompt & Saraban (for official documents) -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -778,6 +785,78 @@
                                         <label class="block text-sm font-medium text-gray-400 mb-2">ได้รับเงินจาก</label>
                                         <input type="text" id="rec_received_from" value="บริษัท พีรพัฒน์ เทคโนโลยี จำกัด (มหาชน)" class="req-input-receipt w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-green-500">
                                     </div>
+                                    
+                                    <!-- ส่วนเลือกประเภทการรับเงิน -->
+                                    <div class="md:col-span-2 mt-2 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+                                        <label class="block text-sm font-bold text-gray-300 mb-3">การรับเงิน</label>
+                                        <div class="flex items-center gap-6 mb-4">
+                                            <label class="flex items-center cursor-pointer">
+                                                <input type="radio" name="rec_payment_method" value="cash" class="w-5 h-5 text-green-500 bg-gray-800 border-gray-600 focus:ring-green-500" onchange="toggleReceiptPaymentMethod()" checked>
+                                                <span class="ml-2 text-gray-300">เงินสด / โอนเข้าบัญชี</span>
+                                            </label>
+                                            <label class="flex items-center cursor-pointer">
+                                                <input type="radio" name="rec_payment_method" value="cheque" class="w-5 h-5 text-green-500 bg-gray-800 border-gray-600 focus:ring-green-500" onchange="toggleReceiptPaymentMethod()">
+                                                <span class="ml-2 text-gray-300">เช็ค</span>
+                                            </label>
+                                        </div>
+                                        
+                                        <!-- ส่วนเงินสด/โอน -->
+                                        <div id="rec_payment_cash_section" class="block">
+                                            <p class="text-sm font-medium text-gray-400 mb-2">ข้อมูลบัญชีธนาคารสำหรับรับเงิน (ไม่บังคับ)</p>
+                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-1">
+                                                <div>
+                                                    <label class="block text-xs text-gray-500 mb-1">ธนาคาร</label>
+                                                    <select id="rec_bank_name" onchange="toggleRecBankOtherInput(this.value)" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                                        <option value="">-- เลือกธนาคาร --</option>
+                                                        <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                                                        <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                                                        <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                                                        <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                                                        <option value="ธนาคารกรุงศรีอยุธยา (BAY)">ธนาคารกรุงศรีอยุธยา (BAY)</option>
+                                                        <option value="ธนาคารทหารไทยธนชาต (TTB)">ธนาคารทหารไทยธนชาต (TTB)</option>
+                                                        <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+                                                        <option value="ธนาคาร ธ.ก.ส. (BAAC)">ธนาคาร ธ.ก.ส. (BAAC)</option>
+                                                        <option value="ธนาคารอิสลามแห่งประเทศไทย (IBANK)">ธนาคารอิสลามแห่งประเทศไทย (IBANK)</option>
+                                                        <option value="ธนาคารซีไอเอ็มบีไทย (CIMB)">ธนาคารซีไอเอ็มบีไทย (CIMB)</option>
+                                                        <option value="ธนาคารยูโอบี (UOB)">ธนาคารยูโอบี (UOB)</option>
+                                                        <option value="ธนาคารแลนด์ แอนด์ เฮ้าส์ (LH Bank)">ธนาคารแลนด์ แอนด์ เฮ้าส์ (LH Bank)</option>
+                                                        <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                                                        <option value="อื่นๆ">อื่นๆ</option>
+                                                    </select>
+                                                    <div id="recBankOtherContainer" class="hidden mt-2">
+                                                        <input type="text" id="rec_bank_name_other" placeholder="โปรดระบุชื่อธนาคาร" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs text-gray-500 mb-1">เลขที่บัญชี</label>
+                                                    <input type="text" id="rec_bank_acc_no" placeholder="เช่น 123-4-56789-0" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs text-gray-500 mb-1">ชื่อบัญชี</label>
+                                                    <input type="text" id="rec_bank_acc_name" placeholder="ชื่อ-นามสกุล / ชื่อบริษัท" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                                </div>
+                                            </div>
+                                            <p class="text-xs text-gray-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>ระบบจะดึงจากโปรไฟล์ของคุณมาแสดง และจะบันทึกกลับไปอัตโนมัติหากมีการแก้ไข</p>
+                                        </div>
+                                        
+                                        <!-- ส่วนเช็ค -->
+                                        <div id="rec_payment_cheque_section" class="hidden">
+                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-400 mb-1">เช็คธนาคาร</label>
+                                                    <input type="text" id="rec_cheque_bank" placeholder="ชื่อธนาคาร" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-400 mb-1">เลขที่เช็ค</label>
+                                                    <input type="text" id="rec_cheque_no" placeholder="เลขที่เช็ค" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-400 mb-1">ลงวันที่</label>
+                                                    <input type="date" id="rec_cheque_date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Dynamic Table (Receipt) -->
@@ -1158,6 +1237,47 @@
                                 </div>
                             </div>
 
+                            <!-- ส่วนบัญชีธนาคาร -->
+                            <div class="border-t border-gray-700 pt-5">
+                                <h4 class="text-white font-medium mb-4 flex items-center">
+                                    <i class="fa-solid fa-building-columns text-green-400 mr-2"></i> ข้อมูลบัญชีธนาคาร
+                                    <span class="ml-2 text-xs text-gray-500 font-normal">(ใช้สำหรับการโอนเงิน)</span>
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">ธนาคาร</label>
+                                        <select id="editBankName" onchange="toggleBankOtherInput(this.value)" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                                            <option value="">-- เลือกธนาคาร --</option>
+                                            <option value="ธนาคารกรุงเทพ (BBL)">ธนาคารกรุงเทพ (BBL)</option>
+                                            <option value="ธนาคารกสิกรไทย (KBANK)">ธนาคารกสิกรไทย (KBANK)</option>
+                                            <option value="ธนาคารไทยพาณิชย์ (SCB)">ธนาคารไทยพาณิชย์ (SCB)</option>
+                                            <option value="ธนาคารกรุงไทย (KTB)">ธนาคารกรุงไทย (KTB)</option>
+                                            <option value="ธนาคารกรุงศรีอยุธยา (BAY)">ธนาคารกรุงศรีอยุธยา (BAY)</option>
+                                            <option value="ธนาคารทหารไทยธนชาต (TTB)">ธนาคารทหารไทยธนชาต (TTB)</option>
+                                            <option value="ธนาคารออมสิน (GSB)">ธนาคารออมสิน (GSB)</option>
+                                            <option value="ธนาคาร ธ.ก.ส. (BAAC)">ธนาคาร ธ.ก.ส. (BAAC)</option>
+                                            <option value="ธนาคารอิสลามแห่งประเทศไทย (IBANK)">ธนาคารอิสลามแห่งประเทศไทย (IBANK)</option>
+                                            <option value="ธนาคารซีไอเอ็มบีไทย (CIMB)">ธนาคารซีไอเอ็มบีไทย (CIMB)</option>
+                                            <option value="ธนาคารยูโอบี (UOB)">ธนาคารยูโอบี (UOB)</option>
+                                            <option value="ธนาคารแลนด์ แอนด์ เฮ้าส์ (LH Bank)">ธนาคารแลนด์ แอนด์ เฮ้าส์ (LH Bank)</option>
+                                            <option value="ธนาคารเกียรตินาคินภัทร (KKP)">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                                            <option value="อื่นๆ">อื่นๆ</option>
+                                        </select>
+                                        <div id="bankOtherContainer" class="hidden mt-2">
+                                            <input type="text" id="editBankNameOther" placeholder="โปรดระบุชื่อธนาคาร" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">เลขที่บัญชี</label>
+                                        <input type="text" id="editBankAccountNo" inputmode="numeric" pattern="[0-9\-]*" maxlength="20" placeholder="xxx-x-xxxxx-x" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition" oninput="this.value=this.value.replace(/[^0-9\-]/g,'')">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-400 mb-1 ml-1">ชื่อบัญชี</label>
+                                        <input type="text" id="editBankAccountName" placeholder="ชื่อ-สกุล ตามสมุดบัญชี" class="w-full bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition">
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="border-t border-gray-700 pt-6">
                                 <h4 class="text-white font-medium mb-4 flex items-center">
                                     <i class="fa-solid fa-signature text-blue-400 mr-2"></i> จัดการลายเซ็น
@@ -1252,6 +1372,15 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             try {
+                // Initialize Flatpickr for all date inputs
+                flatpickr("input[type='date']", {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "d/m/Y",
+                    locale: "th",
+                    allowInput: true
+                });
+
                 checkAuth(); 
                 setDatesToToday();
                 if(document.getElementById('adv_items_tbody')) addAdvanceItemRow();
@@ -1483,13 +1612,71 @@
             const recAddr = document.getElementById('rec_address');
             if (recAddr && !recAddr.value) recAddr.value = currentUser.address;
 
+            // ข้อมูลบัญชีธนาคารสำหรับใบรับเงิน
+            const recBankName = document.getElementById('rec_bank_name');
+            const recBankOther = document.getElementById('rec_bank_name_other');
+            const recBankAccNo = document.getElementById('rec_bank_acc_no');
+            const recBankAccName = document.getElementById('rec_bank_acc_name');
+            
+            if (recBankName && !recBankName.value && currentUser.bankName) {
+                const matchOpt = Array.from(recBankName.options).find(o => o.value === currentUser.bankName);
+                if (!matchOpt && currentUser.bankName) {
+                    recBankName.value = "อื่นๆ";
+                    toggleRecBankOtherInput("อื่นๆ");
+                    recBankOther.value = currentUser.bankName;
+                } else {
+                    recBankName.value = currentUser.bankName || '';
+                }
+            }
+            if (recBankAccNo && !recBankAccNo.value) recBankAccNo.value = currentUser.bankAccountNo || '';
+            if (recBankAccName && !recBankAccName.value) recBankAccName.value = currentUser.bankAccountName || '';
+
             const fuelName = document.getElementById('fuel_name');
             if (fuelName && !fuelName.value) fuelName.value = fullName;
+        }
+
+        function toggleRecBankOtherInput(val) {
+            const container = document.getElementById('recBankOtherContainer');
+            if (val === 'อื่นๆ') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('rec_bank_name_other').value = '';
+            }
+        }
+
+        function toggleReceiptPaymentMethod() {
+            const isCash = document.querySelector('input[name="rec_payment_method"][value="cash"]').checked;
+            const cashSection = document.getElementById('rec_payment_cash_section');
+            const chequeSection = document.getElementById('rec_payment_cheque_section');
+            
+            if (isCash) {
+                cashSection.classList.remove('hidden');
+                chequeSection.classList.add('hidden');
+            } else {
+                cashSection.classList.add('hidden');
+                chequeSection.classList.remove('hidden');
+            }
         }
 
         // ==========================================
         // ระบบจัดการตั้งค่าและโปรไฟล์
         // ==========================================
+        function toggleBankOtherInput(val) {
+            const container = document.getElementById('bankOtherContainer');
+            const input = document.getElementById('editBankNameOther');
+            if (!container || !input) return;
+            
+            if (val === 'อื่นๆ') {
+                container.classList.remove('hidden');
+                input.required = true;
+            } else {
+                container.classList.add('hidden');
+                input.required = false;
+                input.value = '';
+            }
+        }
+
         function populateEditProfileForm() {
             if (!currentUser) return;
             document.getElementById('editFirstName').value = currentUser.firstName || '';
@@ -1497,7 +1684,27 @@
             document.getElementById('editPhone').value = currentUser.phone || '';
             document.getElementById('editDepartment').value = currentUser.department || '';
             document.getElementById('editAddress').value = currentUser.address || '';
-            
+
+            // ข้อมูลบัญชีธนาคาร
+            const bankSelect = document.getElementById('editBankName');
+            const bankOtherInput = document.getElementById('editBankNameOther');
+            const savedBank = currentUser.bankName || '';
+            if (bankSelect) {
+                const matchOpt = Array.from(bankSelect.options).find(o => o.value === savedBank);
+                if (savedBank && !matchOpt) {
+                    // ถ้าไม่ตรงกับ list ใดๆ ให้เลือก "อื่นๆ" และเอาค่าไปใส่ใน input
+                    bankSelect.value = "อื่นๆ";
+                    toggleBankOtherInput("อื่นๆ");
+                    if (bankOtherInput) bankOtherInput.value = savedBank;
+                } else {
+                    bankSelect.value = matchOpt ? savedBank : '';
+                    toggleBankOtherInput(bankSelect.value);
+                    if (bankOtherInput) bankOtherInput.value = '';
+                }
+            }
+            if (document.getElementById('editBankAccountNo')) document.getElementById('editBankAccountNo').value = currentUser.bankAccountNo || '';
+            if (document.getElementById('editBankAccountName')) document.getElementById('editBankAccountName').value = currentUser.bankAccountName || '';
+
             // นำลายเซ็นเก่ามาแสดงถ้ามี (ดึงเป็นรูปแบบ URL มาแสดงผล)
             if (currentUser.signature) {
                 drawSignatureImageToCanvas('signatureCanvas', currentUser.signature);
@@ -1526,6 +1733,11 @@
                 }
             }
 
+            let finalBankName = (document.getElementById('editBankName')?.value || '').trim();
+            if (finalBankName === 'อื่นๆ') {
+                finalBankName = (document.getElementById('editBankNameOther')?.value || '').trim();
+            }
+
             const payload = {
                 action: 'update_profile',
                 email: currentUser.email,
@@ -1534,6 +1746,9 @@
                 phone: document.getElementById('editPhone').value,
                 department: document.getElementById('editDepartment').value,
                 address: document.getElementById('editAddress').value,
+                bankName: finalBankName,
+                bankAccountNo: (document.getElementById('editBankAccountNo')?.value || '').trim(),
+                bankAccountName: (document.getElementById('editBankAccountName')?.value || '').trim(),
             };
 
             if (sigPayload !== null) {
@@ -2300,18 +2515,22 @@
                             <div class="mt-4 mb-6" style="${!isLastPage ? 'opacity: 0;' : ''}">
                                 <div class="flex items-center mb-4">
                                     <span class="w-16 font-bold">รับเงิน</span>
-                                    <div class="w-5 h-5 rounded-full border border-black mr-3"></div>
-                                    <span>เงินสด</span>
+                                    <div class="w-5 h-5 rounded-full border border-black mr-3 flex items-center justify-center">
+                                        ${(!doc.payment_method || doc.payment_method === 'cash') ? '<i class="fa-solid fa-check text-sm"></i>' : ''}
+                                    </div>
+                                    <span>เงินสด ${(!doc.payment_method || doc.payment_method === 'cash') && doc.bank_info ? doc.bank_info : ''}</span>
                                 </div>
                                 <div class="flex items-end">
                                     <span class="w-16"></span>
-                                    <div class="w-5 h-5 rounded-full border border-black mr-3 flex-shrink-0 mb-1"></div>
+                                    <div class="w-5 h-5 rounded-full border border-black mr-3 flex-shrink-0 mb-1 flex items-center justify-center">
+                                        ${doc.payment_method === 'cheque' ? '<i class="fa-solid fa-check text-sm"></i>' : ''}
+                                    </div>
                                     <span class="mr-2 whitespace-nowrap">เช็ค</span>
-                                    <span class="inline-block border-b border-black w-48 mr-6"></span>
+                                    <span class="inline-block border-b border-black w-48 mr-6 text-center relative top-1">${doc.payment_method === 'cheque' && doc.cheque_bank ? doc.cheque_bank : ''}</span>
                                     <span class="mr-2 whitespace-nowrap">เลขที่</span>
-                                    <span class="inline-block border-b border-black w-32 mr-6"></span>
+                                    <span class="inline-block border-b border-black w-32 mr-6 text-center relative top-1">${doc.payment_method === 'cheque' && doc.cheque_no ? doc.cheque_no : ''}</span>
                                     <span class="mr-2 whitespace-nowrap">ลงวันที่</span>
-                                    <span class="inline-block border-b border-black flex-grow"></span>
+                                    <span class="inline-block border-b border-black flex-grow text-center relative top-1">${doc.payment_method === 'cheque' && doc.cheque_date ? formatThaiDate(doc.cheque_date) : ''}</span>
                                 </div>
                             </div>
 
@@ -2421,10 +2640,17 @@
 
         function setDatesToToday() {
             const today = new Date();
-            if(document.getElementById('adv_date')) document.getElementById('adv_date').valueAsDate = today;
-            if(document.getElementById('adv_receive_date')) document.getElementById('adv_receive_date').valueAsDate = today;
-            if(document.getElementById('rec_date')) document.getElementById('rec_date').valueAsDate = today;
-            if(document.getElementById('fuel_date')) document.getElementById('fuel_date').valueAsDate = today;
+            const dateIds = ['adv_date', 'adv_receive_date', 'rec_date', 'fuel_date'];
+            dateIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (el._flatpickr) {
+                        el._flatpickr.setDate(today);
+                    } else {
+                        el.valueAsDate = today;
+                    }
+                }
+            });
         }
 
         function toggleFormSection(type) {
@@ -2905,8 +3131,23 @@
         let editingRowNum = null;
         let editingCreatorEmail = null;
 
+        function setDateVal(id, val) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el._flatpickr) {
+                    el._flatpickr.setDate(val);
+                } else {
+                    el.value = val;
+                }
+            }
+        }
+
         function resetAllForms() {
             document.getElementById('clearanceForm').reset();
+            ['adv_date', 'adv_receive_date', 'rec_date', 'rec_cheque_date', 'fuel_date'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el._flatpickr) el._flatpickr.clear();
+            });
             
             editingRowNum = null;
             editingCreatorEmail = null;
@@ -2992,10 +3233,10 @@
                     document.getElementById('chk-advance').checked = true;
                     toggleFormSection('advance');
                     
-                    document.getElementById('adv_date').value = doc.date || '';
+                    setDateVal('adv_date', doc.date || '');
                     document.getElementById('adv_name').value = doc.name || '';
                     document.getElementById('adv_department').value = doc.department || '';
-                    document.getElementById('adv_receive_date').value = doc.advance_date || '';
+                    setDateVal('adv_receive_date', doc.advance_date || '');
                     document.getElementById('adv_receive_amount').value = doc.advance_amount || '';
                     
                     const tbody = document.getElementById('adv_items_tbody');
@@ -3019,10 +3260,45 @@
                     document.getElementById('chk-receipt').checked = true;
                     toggleFormSection('receipt');
                     
-                    document.getElementById('rec_date').value = doc.date || '';
+                    setDateVal('rec_date', doc.date || '');
                     document.getElementById('rec_name').value = doc.name || '';
                     document.getElementById('rec_address').value = doc.address || '';
                     document.getElementById('rec_received_from').value = doc.received_from || '';
+                    
+                    const paymentMethod = doc.payment_method || 'cash';
+                    const cashRadio = document.querySelector('input[name="rec_payment_method"][value="cash"]');
+                    const chequeRadio = document.querySelector('input[name="rec_payment_method"][value="cheque"]');
+                    if (paymentMethod === 'cheque') {
+                        if (chequeRadio) chequeRadio.checked = true;
+                    } else {
+                        if (cashRadio) cashRadio.checked = true;
+                    }
+                    toggleReceiptPaymentMethod();
+                    
+                    const recBankName = document.getElementById('rec_bank_name');
+                    const recBankOther = document.getElementById('rec_bank_name_other');
+                    
+                    if (doc.rec_bank_name) {
+                        const matchOpt = Array.from(recBankName.options).find(o => o.value === doc.rec_bank_name);
+                        if (!matchOpt) {
+                            recBankName.value = "อื่นๆ";
+                            toggleRecBankOtherInput("อื่นๆ");
+                            recBankOther.value = doc.rec_bank_name;
+                        } else {
+                            recBankName.value = doc.rec_bank_name;
+                            toggleRecBankOtherInput(doc.rec_bank_name);
+                        }
+                    } else {
+                        recBankName.value = '';
+                        toggleRecBankOtherInput('');
+                    }
+                    
+                    document.getElementById('rec_bank_acc_no').value = doc.rec_bank_acc_no || '';
+                    document.getElementById('rec_bank_acc_name').value = doc.rec_bank_acc_name || '';
+
+                    document.getElementById('rec_cheque_bank').value = doc.cheque_bank || '';
+                    document.getElementById('rec_cheque_no').value = doc.cheque_no || '';
+                    setDateVal('rec_cheque_date', doc.cheque_date || '');
                     
                     const tbody = document.getElementById('rec_items_tbody');
                     tbody.innerHTML = ''; 
@@ -3047,7 +3323,7 @@
                     document.getElementById('chk-fuel').checked = true;
                     toggleFormSection('fuel');
                     
-                    document.getElementById('fuel_date').value = doc.date || '';
+                    setDateVal('fuel_date', doc.date || '');
                     document.getElementById('fuel_name').value = doc.name || '';
                     
                     const container = document.getElementById('fuel_items_container');
@@ -3250,12 +3526,66 @@
                         }
                     }
 
+                    const paymentMethodEl = document.querySelector('input[name="rec_payment_method"]:checked');
+                    const paymentMethod = paymentMethodEl ? paymentMethodEl.value : 'cash';
+                    
+                    let recBankNameVal = document.getElementById('rec_bank_name').value;
+                    if (recBankNameVal === 'อื่นๆ') {
+                        recBankNameVal = document.getElementById('rec_bank_name_other').value.trim();
+                    }
+                    const recBankAccNoVal = document.getElementById('rec_bank_acc_no').value.trim();
+                    const recBankAccNameVal = document.getElementById('rec_bank_acc_name').value.trim();
+
+                    // Create the display string for the payload backward compatibility
+                    let bankInfoStr = "";
+                    if (recBankNameVal || recBankAccNoVal || recBankAccNameVal) {
+                        let parts = [];
+                        if (recBankNameVal) parts.push(recBankNameVal);
+                        if (recBankAccNoVal) parts.push(recBankAccNoVal);
+                        if (recBankAccNameVal) parts.push(`(${recBankAccNameVal})`);
+                        bankInfoStr = parts.join(' ');
+                    }
+
+                    // Update currentUser bank info if changed
+                    if (paymentMethod === 'cash' && currentUser && (recBankNameVal || recBankAccNoVal || recBankAccNameVal)) {
+                        if (recBankNameVal !== currentUser.bankName || recBankAccNoVal !== currentUser.bankAccountNo || recBankAccNameVal !== currentUser.bankAccountName) {
+                            fetch(GS_URL, {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    action: 'update_profile',
+                                    email: currentUser.email,
+                                    firstName: currentUser.firstName,
+                                    lastName: currentUser.lastName,
+                                    phone: currentUser.phone,
+                                    department: currentUser.department,
+                                    address: currentUser.address,
+                                    bankName: recBankNameVal,
+                                    bankAccountNo: recBankAccNoVal,
+                                    bankAccountName: recBankAccNameVal
+                                })
+                            }).then(res => res.json()).then(result => {
+                                if(result.status === 'success'){
+                                    localStorage.setItem('clearanceUser', JSON.stringify(result.user));
+                                    currentUser = result.user;
+                                }
+                            });
+                        }
+                    }
+
                     payload.documents.push({
                         doc_type: 'ใบรับเงิน',
                         date: document.getElementById('rec_date').value,
                         name: document.getElementById('rec_name').value,
                         address: document.getElementById('rec_address').value,
                         received_from: document.getElementById('rec_received_from').value,
+                        payment_method: paymentMethod,
+                        bank_info: paymentMethod === 'cash' ? bankInfoStr : '',
+                        rec_bank_name: paymentMethod === 'cash' ? recBankNameVal : '',
+                        rec_bank_acc_no: paymentMethod === 'cash' ? recBankAccNoVal : '',
+                        rec_bank_acc_name: paymentMethod === 'cash' ? recBankAccNameVal : '',
+                        cheque_bank: paymentMethod === 'cheque' ? document.getElementById('rec_cheque_bank').value : '',
+                        cheque_no: paymentMethod === 'cheque' ? document.getElementById('rec_cheque_no').value : '',
+                        cheque_date: paymentMethod === 'cheque' ? document.getElementById('rec_cheque_date').value : '',
                         amount: totalAmount,
                         description: autoDescription,
                         items: items,
