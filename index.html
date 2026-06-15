@@ -1248,7 +1248,7 @@
         // ระบบยืนยันตัวตน (Authentication Logic)
         // ==========================================
         let currentUser = null;
-        let isWaitingForSignature = false;
+
 
         document.addEventListener('DOMContentLoaded', () => {
             try {
@@ -1387,21 +1387,47 @@
         }
 
         function logout() {
-            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                localStorage.removeItem('clearanceUser');
-                currentUser = null;
-                
-                document.getElementById('downloadTableBody').innerHTML = '';
-                document.getElementById('editTableBody').innerHTML = '';
-                const approveTbody = document.getElementById('approveTableBody');
-                if (approveTbody) approveTbody.innerHTML = '';
-                const budgetTbody = document.getElementById('budgetTableBody');
-                if (budgetTbody) budgetTbody.innerHTML = '';
-                
-                resetAllForms();
-                switchTab('create');
-                checkAuth();
-            }
+            showCustomConfirm({
+                title: 'ออกจากระบบ',
+                message: 'คุณต้องการออกจากระบบใช่หรือไม่? ข้อมูลที่ยังไม่ได้บันทึกจะหายไป',
+                iconClass: 'fa-solid fa-right-from-bracket text-red-400 text-3xl',
+                buttonText: 'ออกจากระบบ',
+                buttonColorClass: 'bg-red-600 hover:bg-red-500',
+                onConfirm: () => {
+                    // ล้างข้อมูลผู้ใช้
+                    localStorage.removeItem('clearanceUser');
+                    currentUser = null;
+
+                    // ล้างข้อมูล global ทั้งหมดเพื่อป้องกันข้อมูลของผู้ใช้เก่าค้างอยู่
+                    window.appHistoryData = [];
+                    window.filteredHistoryData = [];
+                    window.filteredEditData = [];
+                    window.filteredDownloadData = [];
+                    window.filteredBudgetData = null;
+
+                    // ล้าง UI ตาราง
+                    document.getElementById('downloadTableBody').innerHTML = '';
+                    document.getElementById('editTableBody').innerHTML = '';
+                    const approveTbody = document.getElementById('approveTableBody');
+                    if (approveTbody) approveTbody.innerHTML = '';
+                    const budgetTbody = document.getElementById('budgetTableBody');
+                    if (budgetTbody) budgetTbody.innerHTML = '';
+
+                    resetAllForms();
+                    // ล้างข้อมูลก่อน switchTab เพื่อให้ safeguard ทำงานถูกต้อง
+                    const tempSwitch = () => {
+                        document.querySelectorAll('.tab-section').forEach(el => el.classList.add('hidden'));
+                        const createSection = document.getElementById('section-create');
+                        if (createSection) createSection.classList.remove('hidden');
+                        document.querySelectorAll('.nav-btn').forEach(btn => {
+                            btn.classList.remove('active-nav');
+                            if (btn.dataset.tab === 'create') btn.classList.add('active-nav');
+                        });
+                    };
+                    tempSwitch();
+                    checkAuth();
+                }
+            });
         }
 
         function updateUserSidebarInfo() {
@@ -4251,6 +4277,8 @@
             
             pageData.forEach((row) => {
                 const actualIndex = window.appHistoryData.indexOf(row);
+                // Safety guard: ถ้าหา index ไม่เจอ ให้ข้ามแถวนี้
+                if (actualIndex === -1) return;
                 
                 let displayAmount = parseFloat(row.amount || 0);
                 try {
