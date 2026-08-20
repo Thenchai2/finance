@@ -2091,13 +2091,14 @@ function backupFirebaseToSheets(payload) {
     const prodSheet = ss.getSheetByName("Products");
     if (prodSheet) {
       prodSheet.clearContents();
-      prodSheet.appendRow(["Product_ID", "Product_Name", "Unit", "Cost", "Price_A", "Price_B", "Price_C", "Category", "Note", "Image_URL", "Stock_Qty", "Product_Group", "Supplier", "Storage_Area"]);
+      const rows = [["Product_ID", "Product_Name", "Unit", "Cost", "Price_A", "Price_B", "Price_C", "Category", "Note", "Image_URL", "Stock_Qty", "Product_Group", "Supplier", "Storage_Area"]];
       products.forEach(p => {
-        prodSheet.appendRow([
+        rows.push([
           p.id, p.name, p.unit, p.cost, p.price_a, p.price_b, p.price_c,
           p.category, p.note, p.image_url, p.stock_qty, p.group || "", p.supplier || "", p.storage || ""
         ]);
       });
+      prodSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
     }
   }
   
@@ -2107,13 +2108,14 @@ function backupFirebaseToSheets(payload) {
     const machSheet = ss.getSheetByName("Machines");
     if (machSheet) {
       machSheet.clearContents();
-      machSheet.appendRow(["Machine_ID", "Machine_Name", "Image_URL", "Cost", "Price_A", "Price_B", "Price_C", "Note", "Machine_Group", "Supplier", "Storage_Area"]);
+      const rows = [["Machine_ID", "Machine_Name", "Image_URL", "Cost", "Price_A", "Price_B", "Price_C", "Note", "Machine_Group", "Supplier", "Storage_Area"]];
       machines.forEach(m => {
-        machSheet.appendRow([
+        rows.push([
           m.id, m.name, m.image_url || "", m.cost || 0, m.price_a || 0, m.price_b || 0, m.price_c || 0, m.note || "",
           m.group || "", m.supplier || "", m.storage || ""
         ]);
       });
+      machSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
     }
   }
   
@@ -2123,9 +2125,12 @@ function backupFirebaseToSheets(payload) {
     const settingsSheet = ss.getSheetByName("Settings");
     if (settingsSheet) {
       settingsSheet.clearContents();
-      settingsSheet.appendRow(["Setting_Key", "Setting_Value"]);
-      settingsSheet.appendRow(["isShowPriceBForGuest", settings.isShowPriceBForGuest ? "true" : "false"]);
-      settingsSheet.appendRow(["isShowPriceCForGuest", settings.isShowPriceCForGuest ? "true" : "false"]);
+      const rows = [
+        ["Setting_Key", "Setting_Value"],
+        ["isShowPriceBForGuest", settings.isShowPriceBForGuest ? "true" : "false"],
+        ["isShowPriceCForGuest", settings.isShowPriceCForGuest ? "true" : "false"]
+      ];
+      settingsSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
     }
   }
   
@@ -2135,12 +2140,13 @@ function backupFirebaseToSheets(payload) {
     const manSheet = ss.getSheetByName("Manuals");
     if (manSheet) {
       manSheet.clearContents();
-      manSheet.appendRow(["Manual_ID", "Title", "Description", "File_URL", "File_Type", "Uploaded_At"]);
+      const rows = [["Manual_ID", "Title", "Description", "File_URL", "File_Type", "Uploaded_At"]];
       manuals.forEach(m => {
-        manSheet.appendRow([
+        rows.push([
           m.id, m.title, m.description || "", m.file_url || "", m.file_type || "", m.uploaded_at || ""
         ]);
       });
+      manSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
     }
   }
   
@@ -2150,13 +2156,14 @@ function backupFirebaseToSheets(payload) {
     const poSheet = ss.getSheetByName("PurchaseOrders");
     if (poSheet) {
       poSheet.clearContents();
-      poSheet.appendRow(["PO_Number", "PR_Number", "Product_ID", "Product_Name", "Order_Date", "Ordered_Qty", "Received_Qty", "Last_Received_Date", "Status", "Unit_Cost", "Total_Cost", "Supplier"]);
+      const rows = [["PO_Number", "PR_Number", "Product_ID", "Product_Name", "Order_Date", "Ordered_Qty", "Received_Qty", "Last_Received_Date", "Status", "Unit_Cost", "Total_Cost", "Supplier"]];
       purchaseOrders.forEach(o => {
-        poSheet.appendRow([
+        rows.push([
           o.poNumber, o.prNumber || "", o.productId, o.productName, o.orderDate, o.orderedQty, o.receivedQty, o.lastReceivedDate || "",
           o.status, o.unitCost || 0, o.totalCost || 0, o.supplier || ""
         ]);
       });
+      poSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
     }
   }
 
@@ -2166,12 +2173,13 @@ function backupFirebaseToSheets(payload) {
     const txSheet = ss.getSheetByName("Transactions");
     if (txSheet) {
       txSheet.clearContents();
-      txSheet.appendRow(["Transaction_ID", "Requester", "Department", "Machine_ID", "Serial_Number", "Total_Price", "Note", "Created_At", "Status", "Items_JSON"]);
+      const rows = [["Transaction_ID", "Requester", "Department", "Machine_ID", "Serial_Number", "Total_Price", "Note", "Created_At", "Status", "Items_JSON"]];
       transactions.forEach(t => {
-        txSheet.appendRow([
+        rows.push([
           t.id, t.requester, t.department, t.machine_id, t.serial_number || "", t.total_price, t.note || "", t.created_at, t.status, JSON.stringify(t.items || [])
         ]);
       });
+      txSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
     }
   }
 
@@ -2181,10 +2189,11 @@ function backupFirebaseToSheets(payload) {
     const mapSheet = ss.getSheetByName("Mappings");
     if (mapSheet) {
       mapSheet.clearContents();
-      mapSheet.appendRow(["Product_ID", "Machine_ID"]);
+      const rows = [["Product_ID", "Machine_ID"]];
       mappings.forEach(m => {
-        mapSheet.appendRow([m.product_id, m.machine_id]);
+        rows.push([m.product_id, m.machine_id]);
       });
+      mapSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
     }
   }
 
@@ -2194,13 +2203,14 @@ function backupFirebaseToSheets(payload) {
     const lotsSheet = ss.getSheetByName("Lots");
     if (lotsSheet) {
       lotsSheet.clearContents();
-      lotsSheet.appendRow(["Lot_ID", "Product_ID", "Cost", "Price_A", "Price_B", "Price_C", "Initial_Qty", "Remaining_Qty", "Created_At", "Note"]);
+      const rows = [["Lot_ID", "Product_ID", "Cost", "Price_A", "Price_B", "Price_C", "Initial_Qty", "Remaining_Qty", "Created_At", "Note"]];
       lots.forEach(l => {
-        lotsSheet.appendRow([
+        rows.push([
           l.lot_id, l.product_id, l.cost || 0, l.price_a || 0, l.price_b || 0, l.price_c || 0,
           l.initial_qty || 0, l.remaining_qty || 0, l.created_at || "", l.note || ""
         ]);
       });
+      lotsSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
     }
   }
 
@@ -2210,12 +2220,13 @@ function backupFirebaseToSheets(payload) {
     const usersSheet = ss.getSheetByName("Users");
     if (usersSheet) {
       usersSheet.clearContents();
-      usersSheet.appendRow(["Full_Name", "Department", "Phone", "Email", "Password_Hash", "Role", "Price_Level", "User_Type"]);
+      const rows = [["Full_Name", "Department", "Phone", "Email", "Password_Hash", "Role", "Price_Level", "User_Type"]];
       users.forEach(u => {
-        usersSheet.appendRow([
+        rows.push([
           u.fullName, u.department, u.phone || "", u.email, u.passwordHash, u.role || "user", u.priceLevel || "A", u.userType || "insource"
         ]);
       });
+      usersSheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
     }
   }
 }
