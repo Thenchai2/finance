@@ -7,6 +7,32 @@ window.formatDateTimeThai = function(dateStr) {
     let str = String(dateStr).trim();
     if (!str || str === '-') return '-';
 
+    try {
+        let parseStr = str;
+        if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/.test(str)) {
+            parseStr = str.replace(' ', 'T');
+        }
+        const d = new Date(parseStr);
+        if (!isNaN(d.getTime())) {
+            const pad = (n) => String(n).padStart(2, '0');
+            const day = pad(d.getDate());
+            const month = pad(d.getMonth() + 1);
+            const year = d.getFullYear();
+            
+            const hasTime = str.includes(':') || (str.includes('T') && str.split('T')[1]);
+            if (hasTime) {
+                const hours = pad(d.getHours());
+                const minutes = pad(d.getMinutes());
+                const seconds = pad(d.getSeconds());
+                return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+            } else {
+                return `${day}/${month}/${year}`;
+            }
+        }
+    } catch (e) {
+        // ignore and fallback
+    }
+
     str = str.replace('T', ' ').replace(/\.\d+Z$/, '').replace(/Z$/, '');
     const parts = str.split(' ');
     const datePart = parts[0];
@@ -93,28 +119,84 @@ let db = { products: [], machines: [], mappings: [], purchaseOrders: [] };
             // 3. Update Auth UI to adjust elements and sidebar visibility
             updateAuthUI(); 
 
-            // 4. Check url for initial view parameter
+            // 4. Check url parameters
             const urlParams = new URLSearchParams(window.location.search);
-            const initialView = urlParams.get('view') || 'view-catalog';
-            
-            // Switch to initial view (only if on the same page, otherwise it handles redirect)
-            // But wait, to prevent infinite loops, we check if the view matches the page we are on
-            const targetPage = VIEW_PAGES[initialView] || 'index.html';
             const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            
+            // Get intended view
+            let initialView = urlParams.get('view');
+            if (!initialView) {
+                if (currentPage === 'requisition.html') initialView = 'view-pos';
+                else if (currentPage === 'purchase.html') initialView = 'view-purchase';
+                else initialView = 'view-catalog';
+            }
+
+            // If we are on index.html and triggerLogin is present, open login dialog
+            const triggerLogin = urlParams.get('triggerLogin') === 'true';
+            const redirectView = urlParams.get('redirectView');
+
+            if (triggerLogin && !isLoggedIn) {
+                showLoginDialog(() => {
+                    if (redirectView) {
+                        switchView(redirectView);
+                    }
+                });
+            }
+
+            // 5. Verify authorization
+            const targetPage = VIEW_PAGES[initialView] || 'index.html';
             const isSamePage = currentPage === targetPage || (currentPage === '' && targetPage === 'index.html');
             
+            const isPublicView = initialView === 'view-catalog' || initialView === 'view-manual';
+
+            if (!isPublicView) {
+                if (!isLoggedIn) {
+                    // Redirect to login on index.html
+                    window.location.href = `index.html?triggerLogin=true&redirectView=${initialView}`;
+                    return;
+                } else if (!hasAccess(initialView)) {
+                    // Logged in but no permissions
+                    showToast("คุณไม่มีสิทธิ์เข้าถึงส่วนงานนี้", "error");
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                    return;
+                }
+            }
+
+            // 6. If authorized and on the correct page, render the view
             if (isSamePage) {
-                // Same page SPA switch
                 document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
                 const targetEl = document.getElementById(initialView);
                 if (targetEl) {
                     targetEl.classList.remove('hidden');
                 }
                 updateSidebarHighlight(initialView);
+                
+                // Run page specific view initializations if needed
+                if (initialView === 'view-restock' && typeof initRestockView === 'function') initRestockView();
+                if (initialView === 'view-manual' && typeof initManualView === 'function') initManualView();
+                if (initialView === 'view-manage-manuals' && typeof initManageManualsView === 'function') initManageManualsView();
+                if (initialView === 'view-user-management' && typeof fetchAndRenderUsersList === 'function') fetchAndRenderUsersList();
+                if (initialView === 'view-report' && typeof initReportView === 'function') initReportView();
+                if (initialView === 'view-purchase') {
+                    if (typeof closePurchaseSubSection === 'function') closePurchaseSubSection();
+                    const isAdmin = currentUser && currentUser.role === 'ADMIN';
+                    const cardManage = document.getElementById('card-manage-orders');
+                    if (cardManage) cardManage.classList.toggle('hidden', !isAdmin);
+                    const cardHistory = document.getElementById('card-purchase-history');
+                    if (cardHistory) cardHistory.classList.toggle('hidden', !isAdmin);
+                    const cardOverview = document.getElementById('card-purchase-overview');
+                    if (cardOverview) cardOverview.classList.toggle('hidden', !isAdmin);
+                }
+            } else {
+                // If the URL parameters point to a view belonging to another page, redirect to it!
+                window.location.href = `${targetPage}?view=${initialView}`;
+                return;
             }
 
-            // 5. Fetch DB (which will trigger updateAllViews for the active page)
-            fetchData(true); 
+            // 7. Fetch data
+            fetchData(false); 
         });
 
         document.addEventListener('click', function(event) {
@@ -169,7 +251,7 @@ let db = { products: [], machines: [], mappings: [], purchaseOrders: [] };
             }
             
             const mapMachContainer = document.getElementById('map_machine_search');
-            if (mapMachContainer && !mapMachContainer.parentElement.contains(event.target)) hideMachineSuggestions();
+            if (mapMachContainer && !mapMachContainer.parentElement.contains(event.target) && typeof hideMachineSuggestions === 'function') hideMachineSuggestions();
             
             const restockProductInput = document.getElementById('restock_product_input');
             if (restockProductInput) {
@@ -316,6 +398,9 @@ let db = { products: [], machines: [], mappings: [], purchaseOrders: [] };
                 if (viewId === 'view-restock' && typeof initRestockView === 'function') {
                     initRestockView();
                 }
+                if (viewId === 'view-report' && typeof initReportView === 'function') {
+                    initReportView();
+                }
                 if (viewId === 'view-manual' && typeof initManualView === 'function') {
                     initManualView();
                 }
@@ -393,7 +478,7 @@ let db = { products: [], machines: [], mappings: [], purchaseOrders: [] };
                         
                         <li class="protected-nav-item hidden border-t border-slate-700/30 my-1 pt-1" data-view="divider-admin"></li>
                         <li class="protected-nav-item hidden" data-view="view-purchase"><a href="#" onclick="switchView('view-purchase', this);" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-cart-shopping mr-3 w-5 text-center flex-shrink-0 text-indigo-400"></i><span>งานจัดซื้อ</span></a></li>
-                        <li class="protected-nav-item hidden" data-view="view-report"><a href="#" onclick="switchView('view-report', this); if (typeof initReportView === 'function') initReportView();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-chart-pie mr-3 w-5 text-center flex-shrink-0 text-emerald-400"></i><span>Report</span></a></li>
+                        <li class="protected-nav-item hidden" data-view="view-report"><a href="#" onclick="switchView('view-report', this)" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-chart-pie mr-3 w-5 text-center flex-shrink-0 text-emerald-400"></i><span>Report</span></a></li>
                         <li class="protected-nav-item hidden" data-view="view-settings"><a href="#" onclick="switchView('view-settings', this); if (typeof initSettingsView === 'function') initSettingsView();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-cog mr-3 w-5 text-center flex-shrink-0 text-slate-400"></i><span>ตั้งค่าระบบ</span></a></li>
                         
                         <li id="nav-item-manual" data-view="view-manual"><a href="#" onclick="switchView('view-manual', this); if (typeof initManualView === 'function') initManualView();" class="menu-item flex items-center px-4 py-3.5 rounded-lg text-gray-300 hover:bg-slate-700 hover:text-white transition-all"><i class="fa-solid fa-book mr-3 w-5 text-center flex-shrink-0 text-purple-400"></i><span>คู่มือ</span></a></li>
@@ -777,104 +862,133 @@ let db = { products: [], machines: [], mappings: [], purchaseOrders: [] };
 
         const LS_CACHE_KEY = 'spareparts_cache_v1';
         const LS_CACHE_TTL = 5 * 60 * 1000; // 5 นาที (ms)
+        let isFirebaseListenerInitialized = false;
+        let firebaseListenerPromise = null;
+        let resolveFirstFetch = null;
 
         async function fetchData(forceRefresh = false) {
-            // ถ้าไม่ได้บังคับ refresh → ตรวจสอบ localStorage cache ก่อน
-            if (!forceRefresh) {
-                try {
-                    const raw = localStorage.getItem(LS_CACHE_KEY);
-                    if (raw) {
-                        const cached = JSON.parse(raw);
-                        const age = Date.now() - (cached.ts || 0);
-                        const hasData = cached.data
-                            && Array.isArray(cached.data.products)
-                            && cached.data.products.length > 0;
-
-                        if (age < LS_CACHE_TTL && hasData) {
-                            // ข้อมูล cache ยังสดและไม่ว่าง → แสดงทันที
-                            db = cached.data;
-                            updateAllViews();
-                            // ดึงข้อมูลใหม่เบื้องหลัง (ไม่แสดง spinner)
-                            _fetchFromServer(true);
-                            return;
-                        }
+            // 1. ดึงข้อมูลจาก Cache ใน LocalStorage ขึ้นมาแสดงก่อนทันทีเพื่อความรวดเร็ว
+            try {
+                const raw = localStorage.getItem(LS_CACHE_KEY);
+                if (raw) {
+                    const cached = JSON.parse(raw);
+                    const hasData = cached.data
+                        && Array.isArray(cached.data.products)
+                        && cached.data.products.length > 0;
+                    if (hasData) {
+                        db = cached.data;
+                        updateAllViews();
                     }
-                } catch(e) {
-                    // localStorage มีปัญหา → ล้าง cache แล้วดึงใหม่
-                    try { localStorage.removeItem(LS_CACHE_KEY); } catch(_) {}
+                }
+            } catch (e) {
+                try { localStorage.removeItem(LS_CACHE_KEY); } catch(_) {}
+            }
+
+            // 2. ถ้ามีการกด Force Refresh หรือแอปยังไม่มีข้อมูลในตัวแปร db เลย ให้แสดง loading
+            const hasNoData = !db || !db.products || db.products.length === 0;
+            if (forceRefresh || hasNoData) {
+                showLoading('กำลังซิงค์ข้อมูลระบบ...');
+            }
+
+            // 3. เริ่มต้นเปิด Real-time Listener (ถ้ายังไม่ได้รัน)
+            if (!isFirebaseListenerInitialized) {
+                isFirebaseListenerInitialized = true;
+                
+                firebaseListenerPromise = new Promise((resolve, reject) => {
+                    resolveFirstFetch = resolve;
+                    
+                    try {
+                        // ใช้ Firebase Realtime Database SDK เพื่อเปิดฟังข้อมูลแบบ Real-time (WebSocket)
+                        firebase.database().ref().on('value', (snapshot) => {
+                            try {
+                                const fbData = snapshot.val();
+                                if (fbData) {
+                                    const ensureArray = (val) => {
+                                        if (!val) return [];
+                                        if (Array.isArray(val)) return val;
+                                        if (typeof val === 'object') {
+                                            return Object.keys(val)
+                                                .sort((a, b) => Number(a) - Number(b))
+                                                .map(key => val[key]);
+                                        }
+                                        return [];
+                                    };
+
+                                    const appDataNode = fbData.appData || {};
+                                    const consolidated = {
+                                        products: ensureArray(appDataNode.products),
+                                        machines: ensureArray(appDataNode.machines),
+                                        mappings: ensureArray(fbData.mappings),
+                                        settings: appDataNode.settings || {},
+                                        manuals: ensureArray(appDataNode.manuals),
+                                        lots: ensureArray(fbData.lots),
+                                        purchaseOrders: ensureArray(appDataNode.purchaseOrders)
+                                    };
+
+                                    if (consolidated.products && consolidated.products.length > 0) {
+                                        db = consolidated;
+                                        try {
+                                            localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ data: db, ts: Date.now() }));
+                                        } catch(e) {}
+                                        
+                                        updateAllViews();
+                                    }
+                                }
+                            } catch (err) {
+                                console.error("Error in Firebase real-time listener callback:", err);
+                            } finally {
+                                // โหลดข้อมูลเสร็จเรียบร้อยในรอบแรก
+                                if (resolveFirstFetch) {
+                                    resolveFirstFetch();
+                                    resolveFirstFetch = null;
+                                }
+                                hideLoading();
+                            }
+                        }, (fbErr) => {
+                            console.warn("Real-time sync failed. Falling back to Google Apps Script:", fbErr);
+                            // หากต่อ Firebase ไม่ได้ ให้ข้ามไปดึงข้อมูลผ่าน Apps Script แทน
+                            _fetchFromBackupServer().then(resolve).catch(reject);
+                        });
+                    } catch (err) {
+                        console.error("Firebase SDK Listener Setup Error:", err);
+                        _fetchFromBackupServer().then(resolve).catch(reject);
+                    }
+                });
+            } else {
+                // ถ้า Listener ทำงานอยู่แล้ว
+                if (forceRefresh) {
+                    // หากผู้ใช้กด Refresh ด้วยตัวเอง ให้แสดงว่าอัปเดตแล้ว (เนื่องจาก Listener ดึงข้อมูลล่าสุดให้อยู่ตลอดเวลาอยู่แล้ว)
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    hideLoading();
+                    showToast('ข้อมูลเป็นปัจจุบันแล้ว');
                 }
             }
 
-            // ไม่มี cache / cache หมดอายุ / ข้อมูลว่าง → ดึงจาก server + แสดง spinner
-            showLoading('กำลังดึงข้อมูลระบบ...');
-            await _fetchFromServer(false);
+            // รอจนกว่าจะดึงข้อมูลเสร็จสิ้นในรอบแรก (ถ้าจำเป็น)
+            if (firebaseListenerPromise) {
+                await firebaseListenerPromise;
+            }
         }
 
-        async function _fetchFromServer(background = false) {
+        async function _fetchFromBackupServer() {
             try {
-                let data = null;
+                const res = await fetch(API_URL + '?action=getAppData', { method: 'GET' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
                 
-                // ลองดึงจาก Firebase ก่อนเพื่อความเร็วสูงสุด
-                if (FIREBASE_DB_URL) {
-                    try {
-                        const res = await fetch(FIREBASE_DB_URL);
-                        if (res.ok) {
-                            let fbData = await res.json();
-                            if (fbData) {
-                                // ป้องกันปัญหา Firebase แปลง Array ที่ดัชนีไม่เรียงกัน (Sparse Array) ให้กลายเป็น Object
-                                const ensureArray = (val) => {
-                                    if (!val) return [];
-                                    if (Array.isArray(val)) return val;
-                                    if (typeof val === 'object') {
-                                        return Object.keys(val)
-                                            .sort((a, b) => Number(a) - Number(b))
-                                            .map(key => val[key]);
-                                    }
-                                    return [];
-                                };
-                                
-                                const appDataNode = fbData.appData || {};
-                                const consolidated = {
-                                    products: ensureArray(appDataNode.products),
-                                    machines: ensureArray(appDataNode.machines),
-                                    mappings: ensureArray(fbData.mappings),
-                                    settings: appDataNode.settings || {},
-                                    manuals: ensureArray(appDataNode.manuals),
-                                    lots: ensureArray(fbData.lots),
-                                    purchaseOrders: ensureArray(appDataNode.purchaseOrders)
-                                };
-                                
-                                if (consolidated.products && consolidated.products.length > 0) {
-                                    data = consolidated;
-                                }
-                            }
-                        }
-                    } catch (fbErr) {
-                        console.warn("ดึงข้อมูลจาก Firebase ล้มเหลว กำลังใช้การดึงข้อมูลสำรองจาก Google Apps Script: ", fbErr);
-                    }
-                }
-                
-                // หากดึงจาก Firebase ไม่สำเร็จ, ข้อมูลว่างเปล่า, หรือรูปแบบไม่ถูกต้อง -> ดึงจาก Google Apps Script สำรอง (Google Drive)
-                if (!data || !data.products || !Array.isArray(data.products)) {
-                    const res = await fetch(API_URL + '?action=getAppData', { method: 'GET' });
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    data = await res.json();
-                }
-
-                // ตรวจสอบว่าข้อมูลที่ได้กลับมา valid ก่อน cache
                 if (data && Array.isArray(data.products)) {
+                    db = data;
                     try {
                         localStorage.setItem(LS_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-                    } catch(e) { /* storage full → ข้ามได้ */ }
-                    db = data;
+                    } catch(e) {}
                     updateAllViews();
                 } else {
                     throw new Error('ข้อมูลที่ได้รับไม่ถูกต้อง');
                 }
             } catch (error) {
-                if (!background) showToast('ไม่สามารถดึงข้อมูลได้: ' + error.message, 'error');
+                showToast('ไม่สามารถดึงข้อมูลได้: ' + error.message, 'error');
             }
-            if (!background) hideLoading();
+            hideLoading();
         }
 // ==========================================
 // Firebase Direct Backend Bypass Interceptor
@@ -1840,3 +1954,88 @@ window.fetch = async function (url, options) {
 };
 
 console.log("[Firebase Bypass] Interceptor activated successfully.");
+
+function renderGenericPagination(containerId, infoId, controlsId, totalItems, currentPage, pageSize, changePageFuncName) {
+    const container = document.getElementById(containerId);
+    const infoEl = document.getElementById(infoId);
+    const controlsEl = document.getElementById(controlsId);
+    if (!container) return;
+
+    const totalPages = Math.ceil(totalItems / pageSize);
+
+    if (totalItems === 0 || totalPages <= 1) {
+        container.classList.add('hidden');
+        if (infoEl) infoEl.innerHTML = '';
+        if (controlsEl) controlsEl.innerHTML = '';
+        return;
+    }
+
+    container.classList.remove('hidden');
+
+    const startItem = (currentPage - 1) * pageSize + 1;
+    const endItem = Math.min(currentPage * pageSize, totalItems);
+    if (infoEl) {
+        infoEl.innerHTML = `แสดง <span class="font-bold text-slate-800">${startItem} - ${endItem}</span> จากทั้งหมด <span class="font-bold text-slate-800">${totalItems}</span> รายการ (หน้า <span class="font-bold text-indigo-600">${currentPage}</span> / ${totalPages})`;
+    }
+
+    if (!controlsEl) return;
+
+    let buttonsHtml = '';
+
+    // First page <<
+    buttonsHtml += `
+        <button onclick="${changePageFuncName}(1)" ${currentPage === 1 ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าแรก">
+            <i class="fa-solid fa-angles-left"></i>
+        </button>
+    `;
+
+    // Prev page <
+    buttonsHtml += `
+        <button onclick="${changePageFuncName}(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าก่อนหน้า">
+            <i class="fa-solid fa-angle-left mr-1"></i> ก่อนหน้า
+        </button>
+    `;
+
+    // Page numbers
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+
+    if (startPage > 1) {
+        buttonsHtml += `<button onclick="${changePageFuncName}(1)" class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition shadow-sm">1</button>`;
+        if (startPage > 2) {
+            buttonsHtml += `<span class="px-1 text-gray-400 text-xs font-bold">...</span>`;
+        }
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+        if (p === currentPage) {
+            buttonsHtml += `<button class="px-3.5 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-extrabold shadow-md shadow-indigo-500/20 cursor-default">${p}</button>`;
+        } else {
+            buttonsHtml += `<button onclick="${changePageFuncName}(${p})" class="px-3.5 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm">${p}</button>`;
+        }
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            buttonsHtml += `<span class="px-1 text-gray-400 text-xs font-bold">...</span>`;
+        }
+        buttonsHtml += `<button onclick="${changePageFuncName}(${totalPages})" class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition shadow-sm">${totalPages}</button>`;
+    }
+
+    // Next page >
+    buttonsHtml += `
+        <button onclick="${changePageFuncName}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าถัดไป">
+            ถัดไป <i class="fa-solid fa-angle-right ml-1"></i>
+        </button>
+    `;
+
+    // Last page >>
+    buttonsHtml += `
+        <button onclick="${changePageFuncName}(${totalPages})" ${currentPage === totalPages ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าสุดท้าย">
+            <i class="fa-solid fa-angles-right"></i>
+        </button>
+    `;
+
+    controlsEl.innerHTML = buttonsHtml;
+}
+

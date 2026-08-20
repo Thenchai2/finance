@@ -14,6 +14,8 @@
         let purchaseHistorySearchQuery = '';
         let purchaseHistoryCategoryFilter = '';
         let purchaseHistoryGroupFilter = '';
+        let receiveHistoryCategoryFilter = '';
+        let receiveHistoryGroupFilter = '';
         let purchaseOverviewSearchQuery = '';
         let purchaseOverviewCategoryFilter = '';
         let purchaseOverviewGroupFilter = '';
@@ -21,6 +23,7 @@
         let purchaseOverviewSelectedYears = [];
         let selectedVolatileProduct = '';
         let selectedVolatileSupplier = '';
+        let transactions = [];
 
         function openPurchaseSubSection(key, title, iconClass, gradientClass) {
             const gridEl = document.getElementById('purchase-menu-grid');
@@ -202,11 +205,6 @@
                 }, 50);
             } else if (key === 'manage-orders') {
                 desc = "ตรวจสอบความคืบหน้า อนุมัติ หรืออัปเดตใบสั่งซื้อ";
-                
-                // Get unique suppliers list from db.products
-                const products = db.products || [];
-                const suppliers = [...new Set(products.map(p => p.supplier || 'ไม่ระบุ').filter(Boolean))].sort();
-                const supplierOptions = suppliers.map(s => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join('');
 
                 htmlContent = `
                     <div class="space-y-6">
@@ -215,9 +213,8 @@
                             <!-- Left: Filter Dropdown -->
                             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                                 <span class="text-xs font-semibold text-slate-500">กรองซัพพลายเออร์:</span>
-                                <select onchange="handleManageOrdersSupplierFilter(this.value)" class="px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 shadow-sm min-w-[200px]">
+                                <select id="manageOrdersSupplierFilterSelect" onchange="handleManageOrdersSupplierFilter(this.value)" class="px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 shadow-sm min-w-[200px]">
                                     <option value="">ทั้งหมด</option>
-                                    ${supplierOptions}
                                 </select>
                             </div>
                             <!-- Right: Search Field -->
@@ -338,19 +335,34 @@
                         <!-- Receive-in History View -->
                         <div id="view-history-receive-section" class="space-y-6 hidden">
                             <!-- Search & Filter Row for Receiving -->
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div class="flex items-center gap-3 flex-wrap">
+                            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                <!-- Left Filters -->
+                                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-semibold text-slate-500">ประเภทอะไหล่:</span>
+                                        <select onchange="handleReceiveHistoryCategoryFilter(this.value)" class="px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 shadow-sm min-w-[150px]">
+                                            <option value="">ทั้งหมด</option>
+                                            ${categoryOptions}
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-semibold text-slate-500">กลุ่มสินค้า:</span>
+                                        <select onchange="handleReceiveHistoryGroupFilter(this.value)" class="px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 shadow-sm min-w-[150px]">
+                                            <option value="">ทั้งหมด</option>
+                                            ${groupOptions}
+                                        </select>
+                                    </div>
                                     <button onclick="exportReceiveHistoryToExcel()" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md active:scale-95 self-start">
                                         <i class="fa-solid fa-file-excel"></i> ส่งออก Excel
                                     </button>
-                                ${isAdmin ? `
-                                <button onclick="deleteAllReceiveHistory()" class="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md active:scale-95 self-start">
-                                    <i class="fa-solid fa-trash-can"></i> ลบประวัติทั้งหมด
-                                </button>
-                                ` : ''}
+                                    ${isAdmin ? `
+                                    <button onclick="deleteAllReceiveHistory()" class="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md active:scale-95 self-start">
+                                        <i class="fa-solid fa-trash-can"></i> ลบประวัติทั้งหมด
+                                    </button>
+                                    ` : ''}
                                 </div>
-                                <!-- Search Field -->
-                                <div class="relative max-w-sm w-full sm:w-80">
+                                <!-- Right Search -->
+                                <div class="relative max-w-sm w-full lg:w-80">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                         <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs"></i>
                                     </span>
@@ -376,6 +388,8 @@
                     purchaseHistorySearchQuery = '';
                     purchaseHistoryCategoryFilter = '';
                     purchaseHistoryGroupFilter = '';
+                    receiveHistoryCategoryFilter = '';
+                    receiveHistoryGroupFilter = '';
                     setPurchaseHistoryTab('po-history');
                 }, 50);
             } else if (key === 'overview') {
@@ -497,6 +511,29 @@
                                 <div class="overflow-y-auto max-h-[320px] pr-1 scrollbar-thin space-y-3" id="overview-monthly-comparison-list">
                                     <!-- Rendered dynamically as cards -->
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- PRODUCT GROUP ANALYSIS SECTION -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-150 shadow-sm space-y-4">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                                <i class="fa-solid fa-layer-group text-indigo-500"></i> วิเคราะห์และเปรียบเทียบยอดจัดซื้อตามกลุ่มสินค้า (Product Group)
+                            </h3>
+                            <div class="overflow-x-auto border border-slate-100 rounded-xl bg-white table-scroll">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-150 font-bold text-slate-600">
+                                            <th class="p-3">กลุ่มสินค้า</th>
+                                            <th class="p-3 text-center">จำนวนที่สั่ง (รายการ)</th>
+                                            <th class="p-3 text-right">ยอดสั่งซื้อรวม</th>
+                                            <th class="p-3 text-right">ยอดได้รับจริงรวม</th>
+                                            <th class="p-3 text-center" style="width: 120px;">สัดส่วนสั่งซื้อ (%)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="overview-group-analysis-tbody" class="divide-y divide-slate-100">
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
@@ -729,10 +766,10 @@
             // Filter by search query
             if (purchaseSearchQuery) {
                 filtered = filtered.filter(o => 
-                    o.poNumber.toLowerCase().includes(purchaseSearchQuery) ||
-                    o.prNumber.toLowerCase().includes(purchaseSearchQuery) ||
-                    o.productId.toLowerCase().includes(purchaseSearchQuery) ||
-                    o.productName.toLowerCase().includes(purchaseSearchQuery)
+                    String(o.poNumber || '').toLowerCase().includes(purchaseSearchQuery) ||
+                    String(o.prNumber || '').toLowerCase().includes(purchaseSearchQuery) ||
+                    String(o.productId || '').toLowerCase().includes(purchaseSearchQuery) ||
+                    String(o.productName || '').toLowerCase().includes(purchaseSearchQuery)
                 );
             }
 
@@ -803,10 +840,10 @@
             // Filter by search query
             if (dashboardOrdersSearchQuery) {
                 filtered = filtered.filter(o => 
-                    o.poNumber.toLowerCase().includes(dashboardOrdersSearchQuery) ||
-                    o.prNumber.toLowerCase().includes(dashboardOrdersSearchQuery) ||
-                    o.productId.toLowerCase().includes(dashboardOrdersSearchQuery) ||
-                    o.productName.toLowerCase().includes(dashboardOrdersSearchQuery)
+                    String(o.poNumber || '').toLowerCase().includes(dashboardOrdersSearchQuery) ||
+                    String(o.prNumber || '').toLowerCase().includes(dashboardOrdersSearchQuery) ||
+                    String(o.productId || '').toLowerCase().includes(dashboardOrdersSearchQuery) ||
+                    String(o.productName || '').toLowerCase().includes(dashboardOrdersSearchQuery)
                 );
             }
 
@@ -946,90 +983,6 @@
             controlsEl.innerHTML = buttonsHtml;
         }
 
-        function renderGenericPagination(containerId, infoId, controlsId, totalItems, currentPage, pageSize, changePageFuncName) {
-            const container = document.getElementById(containerId);
-            const infoEl = document.getElementById(infoId);
-            const controlsEl = document.getElementById(controlsId);
-            if (!container) return;
-
-            const totalPages = Math.ceil(totalItems / pageSize);
-
-            if (totalItems === 0 || totalPages <= 1) {
-                container.classList.add('hidden');
-                if (infoEl) infoEl.innerHTML = '';
-                if (controlsEl) controlsEl.innerHTML = '';
-                return;
-            }
-
-            container.classList.remove('hidden');
-
-            const startItem = (currentPage - 1) * pageSize + 1;
-            const endItem = Math.min(currentPage * pageSize, totalItems);
-            if (infoEl) {
-                infoEl.innerHTML = `แสดง <span class="font-bold text-slate-800">${startItem} - ${endItem}</span> จากทั้งหมด <span class="font-bold text-slate-800">${totalItems}</span> รายการ (หน้า <span class="font-bold text-indigo-600">${currentPage}</span> / ${totalPages})`;
-            }
-
-            if (!controlsEl) return;
-
-            let buttonsHtml = '';
-
-            // First page <<
-            buttonsHtml += `
-                <button onclick="${changePageFuncName}(1)" ${currentPage === 1 ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าแรก">
-                    <i class="fa-solid fa-angles-left"></i>
-                </button>
-            `;
-
-            // Prev page <
-            buttonsHtml += `
-                <button onclick="${changePageFuncName}(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าก่อนหน้า">
-                    <i class="fa-solid fa-angle-left mr-1"></i> ก่อนหน้า
-                </button>
-            `;
-
-            // Page numbers
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = Math.min(totalPages, currentPage + 2);
-
-            if (startPage > 1) {
-                buttonsHtml += `<button onclick="${changePageFuncName}(1)" class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition shadow-sm">1</button>`;
-                if (startPage > 2) {
-                    buttonsHtml += `<span class="px-1 text-gray-400 text-xs font-bold">...</span>`;
-                }
-            }
-
-            for (let p = startPage; p <= endPage; p++) {
-                if (p === currentPage) {
-                    buttonsHtml += `<button class="px-3.5 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-extrabold shadow-md shadow-indigo-500/20 cursor-default">${p}</button>`;
-                } else {
-                    buttonsHtml += `<button onclick="${changePageFuncName}(${p})" class="px-3.5 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm">${p}</button>`;
-                }
-            }
-
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    buttonsHtml += `<span class="px-1 text-gray-400 text-xs font-bold">...</span>`;
-                }
-                buttonsHtml += `<button onclick="${changePageFuncName}(${totalPages})" class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition shadow-sm">${totalPages}</button>`;
-            }
-
-            // Next page >
-            buttonsHtml += `
-                <button onclick="${changePageFuncName}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าถัดไป">
-                    ถัดไป <i class="fa-solid fa-angle-right ml-1"></i>
-                </button>
-            `;
-
-            // Last page >>
-            buttonsHtml += `
-                <button onclick="${changePageFuncName}(${totalPages})" ${currentPage === totalPages ? 'disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold cursor-not-allowed border border-gray-200"' : 'class="px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 text-slate-700 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm"'} title="หน้าสุดท้าย">
-                    <i class="fa-solid fa-angles-right"></i>
-                </button>
-            `;
-
-            controlsEl.innerHTML = buttonsHtml;
-        }
-
         window.changeDashboardOrdersPage = function(p) {
             dashboardOrdersCurrentPage = p;
             renderDashboardOrdersTable();
@@ -1125,6 +1078,11 @@
             const unit = prod ? (prod.unit || 'ชิ้น') : 'ชิ้น';
             const supplier = order.supplier || (prod ? (prod.supplier || 'ไม่ระบุ') : 'ไม่ระบุ');
 
+            const unitCost = parseFloat(order.unitCost) || 0;
+            const totalCost = parseFloat(order.totalCost) || (order.orderedQty * unitCost);
+            const formattedUnitCost = '฿' + unitCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            const formattedTotalCost = '฿' + totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
             Swal.fire({
                 title: '<i class="fa-solid fa-boxes-packing text-emerald-500 mr-2"></i>บันทึกการรับสินค้าเข้าคลัง',
                 html: `
@@ -1147,6 +1105,16 @@
                             <div class="pt-2 border-t border-slate-200/60">
                                 <p class="text-[10px] text-gray-400">ซัพพลายเออร์ที่ซื้อ</p>
                                 <p class="font-bold text-slate-700 mt-0.5">${escapeHTML(supplier)}</p>
+                            </div>
+                            <div class="pt-2 border-t border-slate-200/60 grid grid-cols-2 gap-2">
+                                <div>
+                                    <p class="text-[10px] text-gray-400">ราคาต่อชิ้น</p>
+                                    <p class="font-bold text-slate-700 font-mono mt-0.5">${formattedUnitCost}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-400">ราคารวม</p>
+                                    <p class="font-bold text-slate-700 font-mono mt-0.5">${formattedTotalCost}</p>
+                                </div>
                             </div>
                         </div>
                         <div class="grid grid-cols-3 gap-3 text-center mb-4">
@@ -1303,8 +1271,8 @@
 
             if (draftOrdersSearchQuery) {
                 filtered = filtered.filter(o => 
-                    o.productId.toLowerCase().includes(draftOrdersSearchQuery) ||
-                    o.productName.toLowerCase().includes(draftOrdersSearchQuery)
+                    String(o.productId || '').toLowerCase().includes(draftOrdersSearchQuery) ||
+                    String(o.productName || '').toLowerCase().includes(draftOrdersSearchQuery)
                 );
             }
 
@@ -1690,9 +1658,30 @@
             const orders = db.purchaseOrders || [];
             
             // Filter: only status "เตรียมสั่ง" and "รออนุมัติ"
-            let filtered = orders.filter(o => o.status === "เตรียมสั่ง" || o.status === "รออนุมัติ");
+            let baseFiltered = orders.filter(o => o.status === "เตรียมสั่ง" || o.status === "รออนุมัติ");
+
+            // Update Supplier Filter Dropdown Options dynamically based on orders in this view
+            const supplierSelect = document.getElementById('manageOrdersSupplierFilterSelect');
+            if (supplierSelect) {
+                const activeSuppliers = [...new Set(baseFiltered.map(o => {
+                    const prod = db.products.find(p => String(p.id).trim() === String(o.productId).trim());
+                    return o.supplier || (prod ? (prod.supplier || 'ไม่ระบุ') : 'ไม่ระบุ');
+                }).filter(Boolean))].sort();
+
+                const supplierOptions = activeSuppliers.map(s => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join('');
+                supplierSelect.innerHTML = `<option value="">ทั้งหมด</option>${supplierOptions}`;
+                
+                // Restore previous select value if it's still available, otherwise reset it
+                if (activeSuppliers.includes(manageOrdersSupplierFilter)) {
+                    supplierSelect.value = manageOrdersSupplierFilter;
+                } else {
+                    manageOrdersSupplierFilter = '';
+                    supplierSelect.value = '';
+                }
+            }
 
             // Filter by Supplier dropdown
+            let filtered = baseFiltered;
             if (manageOrdersSupplierFilter) {
                 filtered = filtered.filter(o => {
                     const prod = db.products.find(p => String(p.id).trim() === String(o.productId).trim());
@@ -1704,10 +1693,10 @@
             // Filter by search query (PO Number, PR Number, รหัสสินค้า, ชื่อสินค้า)
             if (manageOrdersSearchQuery) {
                 filtered = filtered.filter(o => 
-                    (o.poNumber || '').toLowerCase().includes(manageOrdersSearchQuery) ||
-                    (o.prNumber || '').toLowerCase().includes(manageOrdersSearchQuery) ||
-                    (o.productId || '').toLowerCase().includes(manageOrdersSearchQuery) ||
-                    (o.productName || '').toLowerCase().includes(manageOrdersSearchQuery)
+                    String(o.poNumber || '').toLowerCase().includes(manageOrdersSearchQuery) ||
+                    String(o.prNumber || '').toLowerCase().includes(manageOrdersSearchQuery) ||
+                    String(o.productId || '').toLowerCase().includes(manageOrdersSearchQuery) ||
+                    String(o.productName || '').toLowerCase().includes(manageOrdersSearchQuery)
                 );
             }
 
@@ -1933,7 +1922,7 @@
 
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Supplier</label>
-                            <input type="text" id="swal-update-supplier" value="${escapeHTML(currentSupplier)}" class="swal2-input !mx-0 !w-full !text-xs !h-9" placeholder="ระบุซัพพลายเออร์">
+                            <input type="text" id="swal-update-supplier" list="list_product_suppliers" value="${escapeHTML(currentSupplier)}" class="swal2-input !mx-0 !w-full !text-xs !h-9" placeholder="ระบุซัพพลายเออร์">
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -2087,10 +2076,10 @@
             // Filter by search query (PO, PR, Product ID, Product Name)
             if (purchaseHistorySearchQuery) {
                 processedOrders = processedOrders.filter(o => 
-                    (o.poNumber || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
-                    (o.prNumber || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
-                    (o.productId || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
-                    (o.productName || '').toLowerCase().includes(purchaseHistorySearchQuery)
+                    String(o.poNumber || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
+                    String(o.prNumber || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
+                    String(o.productId || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
+                    String(o.productName || '').toLowerCase().includes(purchaseHistorySearchQuery)
                 );
             }
 
@@ -2416,7 +2405,7 @@
                 // Apply search filter
                 if (searchKeyword) {
                     receiveGroups = receiveGroups.filter(g => {
-                        if (g.poNumber && g.poNumber.toLowerCase().includes(searchKeyword)) return true;
+                        if (g.poNumber && String(g.poNumber).toLowerCase().includes(searchKeyword)) return true;
                         if (g.txId && String(g.txId).toLowerCase().includes(searchKeyword)) return true;
                         
                         const po = g.poNumber ? (db.purchaseOrders ? db.purchaseOrders.find(o => String(o.poNumber).trim() === g.poNumber) : null) : null;
@@ -2448,6 +2437,24 @@
                     });
                 }
 
+                // Apply Category and Group filters
+                if (receiveHistoryCategoryFilter || receiveHistoryGroupFilter) {
+                    receiveGroups = receiveGroups.filter(g => {
+                        const po = g.poNumber ? (db.purchaseOrders ? db.purchaseOrders.find(o => String(o.poNumber).trim() === g.poNumber) : null) : null;
+                        const firstTx = g.transactions && g.transactions[0] ? g.transactions[0] : null;
+                        const firstItem = firstTx && firstTx.items && firstTx.items[0] ? firstTx.items[0] : null;
+                        let productId = firstItem ? firstItem.product_id : '';
+                        if (po && po.productId) productId = po.productId;
+                        
+                        const prod = db.products ? db.products.find(p => String(p.id).trim().toLowerCase() === String(productId).trim().toLowerCase()) : null;
+                        if (!prod) return false;
+                        
+                        if (receiveHistoryCategoryFilter && prod.category !== receiveHistoryCategoryFilter) return false;
+                        if (receiveHistoryGroupFilter && prod.group !== receiveHistoryGroupFilter) return false;
+                        return true;
+                    });
+                }
+
                 if (receiveGroups.length === 0) {
                     container.innerHTML = `
                         <div class="border border-slate-150 rounded-2xl p-8 bg-slate-50/50 flex flex-col items-center justify-center text-center py-12">
@@ -2470,20 +2477,7 @@
                 const pagedReceiveGroups = receiveGroups.slice(rxStartIndex, rxEndIndex);
 
                 const formatDateTimeThai = (dateStr) => {
-                    if (!dateStr) return '-';
-                    const normalized = dateStr.replace('T', ' ').replace(/\.\d+Z$/, '');
-                    const parts = normalized.split(' ');
-                    const datePart = parts[0];
-                    const timePart = parts[1] || '';
-
-                    const dateSplit = datePart.split('-');
-                    if (dateSplit.length !== 3) return dateStr;
-
-                    const y = dateSplit[0];
-                    const m = dateSplit[1];
-                    const d = dateSplit[2];
-
-                    return `${d}/${m}/${y} ${timePart}`.trim();
+                    return window.formatDateTimeThai ? window.formatDateTimeThai(dateStr) : dateStr;
                 };
 
                 const isAdmin = currentUser && currentUser.role === 'ADMIN';
@@ -2683,6 +2677,18 @@
             renderReceiveHistoryTable();
         };
 
+        window.handleReceiveHistoryCategoryFilter = function(val) {
+            receiveHistoryCurrentPage = 1;
+            receiveHistoryCategoryFilter = val.trim();
+            renderReceiveHistoryTable();
+        };
+
+        window.handleReceiveHistoryGroupFilter = function(val) {
+            receiveHistoryCurrentPage = 1;
+            receiveHistoryGroupFilter = val.trim();
+            renderReceiveHistoryTable();
+        };
+
         window.changeReceiveHistoryPage = function(page) {
             receiveHistoryCurrentPage = page;
             renderReceiveHistoryTable();
@@ -2758,20 +2764,7 @@
             const companyTaxId = 'เลขประจำตัวผู้เสียภาษี 0107551000231';
 
             const formatDateTimeThai = (dateStr) => {
-                if (!dateStr) return '-';
-                const normalized = dateStr.replace('T', ' ').replace(/\.\d+Z$/, '');
-                const parts = normalized.split(' ');
-                const datePart = parts[0];
-                const timePart = parts[1] || '';
-
-                const dateSplit = datePart.split('-');
-                if (dateSplit.length !== 3) return dateStr;
-
-                const y = dateSplit[0];
-                const m = dateSplit[1];
-                const d = dateSplit[2];
-
-                return `${d}/${m}/${y} ${timePart}`.trim();
+                return window.formatDateTimeThai ? window.formatDateTimeThai(dateStr) : dateStr;
             };
 
             matchingTxs.sort((a, b) => {
@@ -3192,10 +3185,10 @@
 
             if (purchaseHistorySearchQuery) {
                 processedOrders = processedOrders.filter(o => 
-                    (o.poNumber || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
-                    (o.prNumber || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
-                    (o.productId || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
-                    (o.productName || '').toLowerCase().includes(purchaseHistorySearchQuery)
+                    String(o.poNumber || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
+                    String(o.prNumber || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
+                    String(o.productId || '').toLowerCase().includes(purchaseHistorySearchQuery) ||
+                    String(o.productName || '').toLowerCase().includes(purchaseHistorySearchQuery)
                 );
             }
 
@@ -3339,7 +3332,7 @@
 
             if (searchKeyword) {
                 receiveGroups = receiveGroups.filter(g => {
-                    if (g.poNumber && g.poNumber.toLowerCase().includes(searchKeyword)) return true;
+                    if (g.poNumber && String(g.poNumber).toLowerCase().includes(searchKeyword)) return true;
                     if (g.txId && String(g.txId).toLowerCase().includes(searchKeyword)) return true;
                     
                     const po = g.poNumber ? (db.purchaseOrders ? db.purchaseOrders.find(o => String(o.poNumber).trim() === g.poNumber) : null) : null;
@@ -3351,6 +3344,24 @@
                     const supplierName = (po && po.supplier) ? po.supplier : (prod && prod.supplier ? prod.supplier : '');
                     if (supplierName && supplierName.toLowerCase().includes(searchKeyword)) return true;
                     return false;
+                });
+            }
+
+            // Apply Category and Group filters
+            if (receiveHistoryCategoryFilter || receiveHistoryGroupFilter) {
+                receiveGroups = receiveGroups.filter(g => {
+                    const po = g.poNumber ? (db.purchaseOrders ? db.purchaseOrders.find(o => String(o.poNumber).trim() === g.poNumber) : null) : null;
+                    const firstTx = g.transactions && g.transactions[0] ? g.transactions[0] : null;
+                    const firstItem = firstTx && firstTx.items && firstTx.items[0] ? firstTx.items[0] : null;
+                    let productId = firstItem ? firstItem.product_id : '';
+                    if (po && po.productId) productId = po.productId;
+                    
+                    const prod = db.products ? db.products.find(p => String(p.id).trim().toLowerCase() === String(productId).trim().toLowerCase()) : null;
+                    if (!prod) return false;
+                    
+                    if (receiveHistoryCategoryFilter && prod.category !== receiveHistoryCategoryFilter) return false;
+                    if (receiveHistoryGroupFilter && prod.group !== receiveHistoryGroupFilter) return false;
+                    return true;
                 });
             }
 
@@ -3508,8 +3519,8 @@
             // Filter by search query (match Product ID or Product Name)
             if (purchaseOverviewSearchQuery) {
                 activeOrders = activeOrders.filter(o => 
-                    (o.productId || '').toLowerCase().includes(purchaseOverviewSearchQuery) ||
-                    (o.productName || '').toLowerCase().includes(purchaseOverviewSearchQuery)
+                    String(o.productId || '').toLowerCase().includes(purchaseOverviewSearchQuery) ||
+                    String(o.productName || '').toLowerCase().includes(purchaseOverviewSearchQuery)
                 );
             }
 
@@ -3855,7 +3866,7 @@
             let filteredProductsAnalysis = purchaseOverviewProducts;
             if (purchaseOverviewSearchQuery) {
                 filteredProductsAnalysis = filteredProductsAnalysis.filter(x => 
-                    x.productId.toLowerCase().includes(purchaseOverviewSearchQuery) ||
+                    String(x.productId || '').toLowerCase().includes(purchaseOverviewSearchQuery) ||
                     String(x.productName || '').toLowerCase().includes(purchaseOverviewSearchQuery)
                 );
             }
@@ -4027,6 +4038,72 @@
             if (prevDrillSupVal && purchaseOverviewSuppliers.some(x => x.supplierName === prevDrillSupVal)) {
                 drillSupplierPriceTrend(prevDrillSupVal);
             }
+
+            // Product Group Analysis Calculation and Rendering
+            const groupData = {};
+            let grandTotalOrdered = 0;
+
+            activeOrders.forEach(o => {
+                const prod = products.find(p => String(p.id).trim() === String(o.productId).trim());
+                const grp = prod ? (prod.group || 'ไม่ระบุ') : 'ไม่ระบุ';
+                
+                if (!groupData[grp]) {
+                    groupData[grp] = {
+                        name: grp,
+                        count: 0,
+                        orderedVal: 0,
+                        receivedVal: 0
+                    };
+                }
+
+                let cost = parseFloat(o.unitCost) || 0;
+                if (cost === 0) {
+                    cost = prod ? (parseFloat(prod.cost) || 0) : 0;
+                }
+                const oVal = o.orderedQty * cost;
+                const rVal = o.receivedQty * cost;
+
+                groupData[grp].count++;
+                groupData[grp].orderedVal += oVal;
+                groupData[grp].receivedVal += rVal;
+                grandTotalOrdered += oVal;
+            });
+
+            const groupList = Object.values(groupData).sort((a, b) => b.orderedVal - a.orderedVal);
+
+            const groupTbody = document.getElementById('overview-group-analysis-tbody');
+            if (groupTbody) {
+                if (groupList.length === 0) {
+                    groupTbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-slate-400 text-xs">
+                                <i class="fa-solid fa-folder-open text-xl mb-1 block text-slate-300"></i>
+                                ไม่มีข้อมูลสำหรับวิเคราะห์กลุ่มสินค้า
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    groupTbody.innerHTML = groupList.map(g => {
+                        const pct = grandTotalOrdered > 0 ? (g.orderedVal / grandTotalOrdered * 100) : 0;
+                        return `
+                            <tr class="hover:bg-slate-50/50 transition">
+                                <td class="p-3 font-semibold text-slate-700">${escapeHTML(g.name)}</td>
+                                <td class="p-3 text-center text-slate-600 font-bold">${g.count}</td>
+                                <td class="p-3 text-right text-slate-800 font-bold font-mono">฿${g.orderedVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td class="p-3 text-right text-emerald-600 font-bold font-mono">฿${g.receivedVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td class="p-3 text-center">
+                                    <div class="flex items-center gap-2 justify-center">
+                                        <div class="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden hidden sm:block">
+                                            <div class="bg-indigo-500 h-1.5 rounded-full" style="width: ${pct}%"></div>
+                                        </div>
+                                        <span class="text-[10px] font-bold text-indigo-600 font-mono">${pct.toFixed(1)}%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
         };
 
         window.drillProductPriceTrend = function(productId) {
@@ -4185,5 +4262,16 @@ function populateDatalists() {
     const dlProdGroups = document.getElementById('list_product_groups');
     if (dlProdGroups) {
         dlProdGroups.innerHTML = productGroups.map(g => `<option value="${escapeHTML(g)}">`).join('');
+    }
+
+    // ซัพพลายเออร์ (Suppliers)
+    const productSuppliers = db.products ? db.products.map(p => p.supplier).filter(Boolean) : [];
+    const orderSuppliers = db.purchaseOrders ? db.purchaseOrders.map(o => o.supplier).filter(Boolean) : [];
+    const machineSuppliers = db.machines ? db.machines.map(m => m.supplier).filter(Boolean) : [];
+    const allSuppliers = [...new Set([...productSuppliers, ...orderSuppliers, ...machineSuppliers])].map(s => s.trim()).filter(Boolean).sort();
+    
+    const dlProdSuppliers = document.getElementById('list_product_suppliers');
+    if (dlProdSuppliers) {
+        dlProdSuppliers.innerHTML = allSuppliers.map(s => `<option value="${escapeHTML(s)}">`).join('');
     }
 }
