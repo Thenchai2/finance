@@ -210,12 +210,15 @@
                     <div class="space-y-6">
                         <!-- Sub Header Control Row -->
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <!-- Left: Filter Dropdown -->
-                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <!-- Left: Filter Dropdown & Export Excel -->
+                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
                                 <span class="text-xs font-semibold text-slate-500">กรองซัพพลายเออร์:</span>
                                 <select id="manageOrdersSupplierFilterSelect" onchange="handleManageOrdersSupplierFilter(this.value)" class="px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 shadow-sm min-w-[200px]">
                                     <option value="">ทั้งหมด</option>
                                 </select>
+                                <button onclick="exportManageOrdersToExcel()" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md active:scale-95">
+                                    <i class="fa-solid fa-file-excel"></i> ส่งออก Excel
+                                </button>
                             </div>
                             <!-- Right: Search Field -->
                             <div class="relative max-w-sm w-full md:w-80">
@@ -238,6 +241,7 @@
                                         <th class="p-4">ชื่อสินค้า</th>
                                         <th class="p-4">Supplier</th>
                                         <th class="p-4 text-center">จำนวนที่สั่ง</th>
+                                        <th class="p-4 text-center">หน่วย</th>
                                         <th class="p-4 text-right">ราคา/หน่วย</th>
                                         <th class="p-4 text-right">ราคารวม</th>
                                         <th class="p-4 text-center rounded-tr-2xl" style="width: 110px;">จัดการ</th>
@@ -808,6 +812,9 @@
                                     <i class="fa-solid fa-square-check"></i> รับสินค้า
                                 </button>
                                 ${isAdmin ? `
+                                <button onclick="handleEditReceiveOrder('${escapeForJS(o.poNumber)}', '${escapeForJS(o.productId)}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-600 text-amber-700 hover:text-white font-bold rounded-xl text-[11px] transition border border-amber-200 hover:border-amber-600 shadow-sm active:scale-95" title="แก้ไขยอดที่ส่ง/ยอดสั่งซื้อ">
+                                    <i class="fa-solid fa-pen-to-square"></i> แก้ไขยอด
+                                </button>
                                 <button onclick="deleteActivePurchaseOrder('${escapeForJS(o.poNumber)}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white font-bold rounded-xl text-[11px] transition border border-rose-100 hover:border-rose-600 shadow-sm active:scale-95">
                                     <i class="fa-solid fa-trash-can"></i> ลบ
                                 </button>
@@ -1078,6 +1085,7 @@
             const unit = prod ? (prod.unit || 'ชิ้น') : 'ชิ้น';
             const supplier = order.supplier || (prod ? (prod.supplier || 'ไม่ระบุ') : 'ไม่ระบุ');
 
+            const isAdmin = currentUser && currentUser.role === 'ADMIN';
             const unitCost = parseFloat(order.unitCost) || 0;
             const totalCost = parseFloat(order.totalCost) || (order.orderedQty * unitCost);
             const formattedUnitCost = '฿' + unitCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -1135,6 +1143,16 @@
                             <label class="block font-semibold text-gray-600 mb-1.5">จำนวนสินค้าที่ได้รับครั้งนี้ (${escapeHTML(unit)})</label>
                             <input type="number" id="swal-receive-qty" min="1" max="${pendingQty}" value="" class="swal2-input !mx-0 !w-full !text-xs !h-9" placeholder="ระบุจำนวน${escapeHTML(unit)}ที่ส่งมอบ">
                         </div>
+                        ${isAdmin ? `
+                        <div class="pt-3 border-t border-slate-200/60 flex justify-between items-center text-[11px]">
+                            <span class="text-amber-600 font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-shield-halved text-amber-500"></i> สิทธิ์ Admin
+                            </span>
+                            <button type="button" onclick="Swal.close(); handleEditReceiveOrder('${escapeForJS(order.poNumber)}', '${escapeForJS(order.productId)}');" class="text-amber-700 hover:text-amber-900 font-bold hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-pen-to-square"></i> แก้ไขยอดที่ส่ง / ยอดสั่งซื้อ
+                            </button>
+                        </div>
+                        ` : ''}
                     </div>
                 `,
                 confirmButtonText: '<i class="fa-solid fa-save mr-1.5"></i>บันทึกการรับเข้า',
@@ -1193,6 +1211,207 @@
                             if (dashboardOrdersTableBody) {
                                 renderDashboardOrdersTable();
                             }
+                        } else {
+                            showToast("เกิดข้อผิดพลาด: " + resultData.message, "error");
+                        }
+                    } catch (error) {
+                        showToast("ไม่สามารถติดต่อเซิร์ฟเวอร์ได้: " + error.message, "error");
+                    }
+                    hideLoading();
+                }
+            });
+        }
+
+        function handleEditReceiveOrder(poNumber, productId) {
+            if (!currentUser || currentUser.role !== 'ADMIN') {
+                showToast("คุณไม่มีสิทธิ์ทำรายการนี้ (เฉพาะผู้ดูแลระบบ)", "error");
+                return;
+            }
+
+            const orders = db.purchaseOrders || [];
+            const order = orders.find(o =>
+                String(o.poNumber).trim() === String(poNumber).trim() &&
+                String(o.productId).trim() === String(productId).trim()
+            );
+            if (!order) {
+                showToast("ไม่พบรายการใบสั่งซื้อนี้", "error");
+                return;
+            }
+
+            const prod = db.products ? db.products.find(p => String(p.id).trim().toLowerCase() === String(order.productId).trim().toLowerCase()) : null;
+            const unit = prod ? (prod.unit || 'ชิ้น') : 'ชิ้น';
+            const supplier = order.supplier || (prod ? (prod.supplier || 'ไม่ระบุ') : 'ไม่ระบุ');
+            const unitCost = parseFloat(order.unitCost) || 0;
+            const currentOrdered = parseFloat(order.orderedQty) || 0;
+            const currentReceived = parseFloat(order.receivedQty) || 0;
+            const currentPending = currentOrdered - currentReceived;
+            const formattedUnitCost = '฿' + unitCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            Swal.fire({
+                title: '<i class="fa-solid fa-pen-to-square text-amber-500 mr-2"></i>แก้ไขยอดรายการ (Admin)',
+                html: `
+                    <div class="space-y-4 text-left text-xs">
+                        <!-- Order Header Info -->
+                        <div class="bg-slate-50 p-3 rounded-xl border border-gray-150 flex gap-2.5 items-center mb-3">
+                            <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-receipt"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-[10px] text-gray-400">เลขที่ใบสั่งซื้อ (PO)</p>
+                                <p class="font-mono font-bold text-slate-700 truncate">${escapeHTML(order.poNumber)} (${escapeHTML(order.prNumber)})</p>
+                            </div>
+                        </div>
+
+                        <!-- Product Info Card -->
+                        <div class="bg-slate-50 p-3 rounded-xl border border-gray-150 mb-3 space-y-1.5">
+                            <p class="font-bold text-slate-800 text-sm">${escapeHTML(order.productName)}</p>
+                            <p class="text-[10px] text-slate-500 font-mono">รหัสสินค้า: ${escapeHTML(order.productId)} | ซัพพลายเออร์: ${escapeHTML(supplier)}</p>
+                            <p class="text-[10px] text-slate-500 font-mono">ราคาต่อหน่วย: ${formattedUnitCost} / ${escapeHTML(unit)}</p>
+                        </div>
+
+                        <!-- Editable Fields Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="bg-white border border-slate-200 p-3 rounded-xl shadow-xs">
+                                <label class="block font-bold text-slate-700 mb-1">
+                                    <i class="fa-solid fa-cart-shopping text-blue-500 mr-1"></i>จำนวนที่สั่งซื้อ (${escapeHTML(unit)})
+                                </label>
+                                <input type="number" id="swal-edit-ordered" min="1" step="any" value="${currentOrdered}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="window.calcEditOrderPending()">
+                                <p class="text-[10px] text-slate-400 mt-1">ยอดสั่งซื้อเดิม: ${currentOrdered} ${escapeHTML(unit)}</p>
+                            </div>
+                            <div class="bg-white border border-slate-200 p-3 rounded-xl shadow-xs">
+                                <label class="block font-bold text-slate-700 mb-1">
+                                    <i class="fa-solid fa-truck-ramp-box text-emerald-500 mr-1"></i>จำนวนที่รับแล้ว (${escapeHTML(unit)})
+                                </label>
+                                <input type="number" id="swal-edit-received" min="0" step="any" value="${currentReceived}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none" oninput="window.calcEditOrderPending()">
+                                <p class="text-[10px] text-slate-400 mt-1">ยอดรับเข้าเดิม: ${currentReceived} ${escapeHTML(unit)}</p>
+                            </div>
+                        </div>
+
+                        <!-- Real-time calculation summary -->
+                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-500 font-medium">ยอดค้างส่ง / ค้างรับคงเหลือ:</span>
+                                <span id="swal-edit-calc-pending" class="font-extrabold text-sm text-rose-600">${currentPending} ${escapeHTML(unit)}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-500 font-medium">สถานะใหม่ที่จะได้รับ:</span>
+                                <span id="swal-edit-calc-status" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${order.status === 'ค้างส่ง' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}">${escapeHTML(order.status)}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs border-t border-slate-200/60 pt-1.5">
+                                <span class="text-slate-500 font-medium">ราคารวมใหม่:</span>
+                                <span id="swal-edit-calc-total" class="font-bold text-slate-800">฿${(currentOrdered * unitCost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 bg-amber-50/70 border border-amber-200/60 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
+                            <i class="fa-solid fa-circle-info text-amber-500 mt-0.5 flex-shrink-0"></i>
+                            <span>
+                                หากมีการแก้ไข <b>จำนวนที่รับแล้ว</b> ระบบจะปรับสต็อกคงเหลือในคลังตามผลต่างให้อัตโนมัติ (เช่น ปรับรับเพิ่มจะเพิ่มสต็อก หรือปรับรับลดจะคืนสต็อก)
+                            </span>
+                        </div>
+                    </div>
+                `,
+                didOpen: () => {
+                    window.calcEditOrderPending = function() {
+                        const ordVal = parseFloat(document.getElementById('swal-edit-ordered').value) || 0;
+                        const recVal = parseFloat(document.getElementById('swal-edit-received').value) || 0;
+                        const pend = ordVal - recVal;
+                        
+                        const pendingEl = document.getElementById('swal-edit-calc-pending');
+                        const statusEl = document.getElementById('swal-edit-calc-status');
+                        const totalEl = document.getElementById('swal-edit-calc-total');
+
+                        if (pendingEl) {
+                            pendingEl.innerText = `${pend} ${unit}`;
+                            if (pend < 0) {
+                                pendingEl.className = "font-extrabold text-sm text-amber-600";
+                            } else if (pend === 0) {
+                                pendingEl.className = "font-extrabold text-sm text-emerald-600";
+                            } else {
+                                pendingEl.className = "font-extrabold text-sm text-rose-600";
+                            }
+                        }
+
+                        if (statusEl) {
+                            if (recVal >= ordVal && ordVal > 0) {
+                                statusEl.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200";
+                                statusEl.innerText = "ได้รับครบ (ย้ายไปประวัติ)";
+                            } else if (recVal > 0) {
+                                statusEl.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200";
+                                statusEl.innerText = "ค้างส่ง";
+                            } else {
+                                statusEl.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200";
+                                statusEl.innerText = "สั่งแล้ว";
+                            }
+                        }
+
+                        if (totalEl) {
+                            totalEl.innerText = '฿' + (ordVal * unitCost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                    };
+                },
+                confirmButtonText: '<i class="fa-solid fa-save mr-1.5"></i>บันทึกการแก้ไข',
+                confirmButtonColor: '#d97706',
+                showCancelButton: true,
+                cancelButtonText: 'ยกเลิก',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true,
+                focusConfirm: false,
+                customClass: {
+                    popup: 'rounded-2xl max-w-lg',
+                    confirmButton: 'rounded-xl font-semibold !text-xs',
+                    cancelButton: 'rounded-xl font-semibold !text-xs',
+                },
+                preConfirm: () => {
+                    const ordInput = document.getElementById('swal-edit-ordered');
+                    const recInput = document.getElementById('swal-edit-received');
+                    const ordVal = parseFloat(ordInput.value);
+                    const recVal = parseFloat(recInput.value);
+
+                    if (isNaN(ordVal) || ordVal <= 0) {
+                        Swal.showValidationMessage('กรุณากรอกจำนวนที่สั่งซื้อให้ถูกต้อง (มากกว่า 0)');
+                        return false;
+                    }
+                    if (isNaN(recVal) || recVal < 0) {
+                        Swal.showValidationMessage('กรุณากรอกจำนวนที่รับแล้วให้ถูกต้อง (ตั้งแต่ 0 ขึ้นไป)');
+                        return false;
+                    }
+                    if (recVal > ordVal) {
+                        Swal.showValidationMessage(`จำนวนที่รับแล้ว (${recVal}) ไม่สามารถมากกว่าจำนวนที่สั่งซื้อ (${ordVal}) ได้ หากรับเข้าเกินกรุณาปรับเพิ่มจำนวนที่สั่งซื้อ`);
+                        return false;
+                    }
+                    return {
+                        orderedQty: ordVal,
+                        receivedQty: recVal
+                    };
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed && result.value) {
+                    const { orderedQty, receivedQty } = result.value;
+                    
+                    showLoading("กำลังบันทึกการแก้ไขยอด...");
+                    try {
+                        const payload = {
+                            poNumber: poNumber,
+                            productId: productId,
+                            orderedQty: orderedQty,
+                            receivedQty: receivedQty,
+                            requester: currentUser ? currentUser.fullName : "ผู้ดูแลระบบ (Admin)",
+                            department: currentUser ? currentUser.department : "ผู้ดูแลระบบ"
+                        };
+                        const res = await fetch(API_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({ action: 'editActivePurchaseOrderQuantity', payload: payload })
+                        });
+                        const resultData = await res.json();
+                        if (resultData.status === 'success') {
+                            showToast("บันทึกการแก้ไขยอดสำเร็จเรียบร้อย!", "success");
+                            await fetchData(true); // force refresh database
+                            
+                            const receiveTableBody = document.getElementById('receiveTableBody');
+                            if (receiveTableBody) renderReceiveTable();
+                            const dashboardOrdersTableBody = document.getElementById('dashboardOrdersTableBody');
+                            if (dashboardOrdersTableBody) renderDashboardOrdersTable();
                         } else {
                             showToast("เกิดข้อผิดพลาด: " + resultData.message, "error");
                         }
@@ -1597,12 +1816,13 @@
                 return;
             }
 
-            const data = draftOrders.map(o => {
+            const data = draftOrders.map((o, index) => {
                 const prod = db.products.find(p => String(p.id).trim() === String(o.productId).trim());
                 const unit = prod ? prod.unit : 'ชิ้น';
                 const supplier = o.supplier || (prod ? (prod.supplier || 'ไม่ระบุ') : 'ไม่ระบุ');
 
                 return {
+                    "ลำดับ": index + 1,
                     "รหัสสินค้า": String(o.productId),
                     "ชื่อสินค้า": o.productName || '',
                     "จำนวนที่สั่ง": parseFloat(o.orderedQty) || 0,
@@ -1617,6 +1837,7 @@
 
             const max_width = data.reduce((w, r) => Math.max(w, r["ชื่อสินค้า"].length), 10);
             worksheet["!cols"] = [
+                { wch: 8 },  // ลำดับ
                 { wch: 15 }, // รหัสสินค้า
                 { wch: Math.min(max_width + 4, 50) }, // ชื่อสินค้า
                 { wch: 15 }, // จำนวนที่สั่ง
@@ -1627,7 +1848,11 @@
             // Format numbers
             const range = XLSX.utils.decode_range(worksheet['!ref']);
             for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-                const qty_cell = XLSX.utils.encode_cell({c: 2, r: R}); // Column C is orderedQty (0-indexed: 2)
+                const seq_cell = XLSX.utils.encode_cell({c: 0, r: R}); // Column A is ลำดับ (0-indexed: 0)
+                if (worksheet[seq_cell]) {
+                    worksheet[seq_cell].t = 'n';
+                }
+                const qty_cell = XLSX.utils.encode_cell({c: 3, r: R}); // Column D is orderedQty (0-indexed: 3)
                 if (worksheet[qty_cell]) {
                     worksheet[qty_cell].t = 'n';
                     worksheet[qty_cell].z = '#,##0';
@@ -1640,6 +1865,83 @@
             XLSX.writeFile(workbook, `Draft_Purchase_Orders_${dateStr}.xlsx`);
             showToast("ส่งออกข้อมูลสำเร็จ", "success");
         }
+
+        function exportManageOrdersToExcel() {
+            const orders = db.purchaseOrders || [];
+            let filtered = orders.filter(o => o.status === "เตรียมสั่ง" || o.status === "รออนุมัติ");
+
+            if (manageOrdersSupplierFilter) {
+                filtered = filtered.filter(o => {
+                    const prod = db.products ? db.products.find(p => String(p.id).trim() === String(o.productId).trim()) : null;
+                    const supplier = o.supplier || (prod ? (prod.supplier || 'ไม่ระบุ') : 'ไม่ระบุ');
+                    return supplier === manageOrdersSupplierFilter;
+                });
+            }
+
+            if (manageOrdersSearchQuery) {
+                filtered = filtered.filter(o => 
+                    String(o.poNumber || '').toLowerCase().includes(manageOrdersSearchQuery) ||
+                    String(o.prNumber || '').toLowerCase().includes(manageOrdersSearchQuery) ||
+                    String(o.productId || '').toLowerCase().includes(manageOrdersSearchQuery) ||
+                    String(o.productName || '').toLowerCase().includes(manageOrdersSearchQuery)
+                );
+            }
+
+            if (filtered.length === 0) {
+                showToast("ไม่มีรายการสำหรับส่งออก", "warning");
+                return;
+            }
+
+            const data = filtered.map((o, index) => {
+                const prod = db.products ? db.products.find(p => String(p.id).trim() === String(o.productId).trim()) : null;
+                const unit = o.unit || (prod ? (prod.unit || 'ชิ้น') : 'ชิ้น');
+                const supplier = o.supplier || (prod ? (prod.supplier || 'ไม่ระบุ') : 'ไม่ระบุ');
+
+                return {
+                    "ลำดับ": index + 1,
+                    "รหัสสินค้า": String(o.productId),
+                    "ชื่อสินค้า": o.productName || (prod ? prod.name : '') || '',
+                    "จำนวนที่สั่ง": parseFloat(o.orderedQty) || 0,
+                    "หน่วย": unit,
+                    "Supplier": supplier
+                };
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "จัดการคำสั่งซื้อ");
+
+            const max_width = data.reduce((w, r) => Math.max(w, (r["ชื่อสินค้า"] || '').length), 10);
+            worksheet["!cols"] = [
+                { wch: 8 },  // ลำดับ
+                { wch: 15 }, // รหัสสินค้า
+                { wch: Math.min(max_width + 4, 50) }, // ชื่อสินค้า
+                { wch: 15 }, // จำนวนที่สั่ง
+                { wch: 10 }, // หน่วย
+                { wch: 20 }  // Supplier
+            ];
+
+            // Format numbers
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                const seq_cell = XLSX.utils.encode_cell({c: 0, r: R}); // Column A is ลำดับ (0-indexed: 0)
+                if (worksheet[seq_cell]) {
+                    worksheet[seq_cell].t = 'n';
+                }
+                const qty_cell = XLSX.utils.encode_cell({c: 3, r: R}); // Column D is orderedQty (0-indexed: 3)
+                if (worksheet[qty_cell]) {
+                    worksheet[qty_cell].t = 'n';
+                    worksheet[qty_cell].z = '#,##0';
+                }
+            }
+
+            const today = new Date();
+            const dateStr = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate()).padStart(2, '0');
+            
+            XLSX.writeFile(workbook, `Manage_Purchase_Orders_${dateStr}.xlsx`);
+            showToast("ส่งออกข้อมูลสำเร็จ", "success");
+        }
+        window.exportManageOrdersToExcel = exportManageOrdersToExcel;
 
         function handleManageOrdersSearch(val) {
             manageOrdersSearchQuery = val.trim().toLowerCase();
@@ -1703,7 +2005,7 @@
             if (filtered.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="10" class="p-12 text-center text-slate-400">
+                        <td colspan="11" class="p-12 text-center text-slate-400">
                             <div class="flex flex-col items-center justify-center">
                                 <i class="fa-solid fa-tasks text-slate-200 text-4xl mb-2"></i>
                                 <p class="text-sm font-bold text-slate-500">ไม่มีใบสั่งซื้อที่รอการอนุมัติหรือเตรียมสั่ง</p>
@@ -1744,7 +2046,7 @@
                 // Section Header Row
                 const headerRow = `
                     <tr class="bg-blue-50/50 text-blue-800 font-bold border-y border-blue-100">
-                        <td colspan="10" class="px-4 py-2 text-xs">
+                        <td colspan="11" class="px-4 py-2 text-xs">
                             <div class="flex items-center gap-1.5">
                                 <i class="fa-solid fa-folder-open text-blue-500"></i>
                                 รายการใหม่ (ยังไม่ได้ดำเนินการจัดกลุ่ม)
@@ -1775,7 +2077,7 @@
                 // Section Header Row
                 const headerRow = `
                     <tr class="bg-slate-100 text-slate-700 font-bold border-y border-slate-200">
-                        <td colspan="10" class="px-4 py-2 text-xs">
+                        <td colspan="11" class="px-4 py-2 text-xs">
                             <div class="flex items-center gap-1.5">
                                 <i class="fa-solid fa-boxes-packing text-slate-500"></i>
                                 รายการสั่งซื้อแยกตามซัพพลายเออร์ (จัดกลุ่ม)
@@ -1789,7 +2091,7 @@
                 Object.keys(groupedBySupplier).sort().forEach(supplier => {
                     const supplierHeaderRow = `
                         <tr class="bg-amber-50/40 text-amber-800 font-bold border-b border-amber-100">
-                            <td colspan="10" class="px-6 py-1.5 text-[10px] uppercase tracking-wider">
+                            <td colspan="11" class="px-6 py-1.5 text-[10px] uppercase tracking-wider">
                                 <i class="fa-solid fa-truck-field mr-1.5"></i> Supplier: ${escapeHTML(supplier)}
                             </td>
                         </tr>
@@ -1818,6 +2120,7 @@
                 
                 const prod = db.products.find(p => String(p.id).trim() === String(o.productId).trim());
                 const supplier = o.supplier || (prod ? (prod.supplier || 'ไม่ระบุ') : 'ไม่ระบุ');
+                const unit = o.unit || (prod ? (prod.unit || 'ชิ้น') : 'ชิ้น');
 
                 const rowHtml = `
                     <tr class="hover:bg-slate-50/80 transition-colors">
@@ -1828,6 +2131,7 @@
                         <td class="p-4 font-semibold text-slate-800">${escapeHTML(o.productName)}</td>
                         <td class="p-4 text-slate-600">${escapeHTML(supplier)}</td>
                         <td class="p-4 text-center font-bold text-slate-700">${o.orderedQty}</td>
+                        <td class="p-4 text-center text-slate-500">${escapeHTML(unit)}</td>
                         <td class="p-4 text-right text-slate-600 font-mono">฿${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                         <td class="p-4 text-right text-slate-800 font-bold font-mono">฿${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                         <td class="p-4 text-center">
@@ -1865,7 +2169,7 @@
 
             const prod = db.products.find(p => String(p.id).trim() === String(order.productId).trim());
             const currentSupplier = order.supplier || (prod ? (prod.supplier || '') : '');
-            const currentUnit = prod ? (prod.unit || 'ชิ้น') : 'ชิ้น';
+            const currentUnit = order.unit || (prod ? (prod.unit || 'ชิ้น') : 'ชิ้น');
 
             let initialCost = parseFloat(order.unitCost) || 0;
             if (initialCost === 0 && prod) {

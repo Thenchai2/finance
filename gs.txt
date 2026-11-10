@@ -72,6 +72,10 @@ function doPost(e) {
       response.data = restockProduct(payload);
       response.message = 'เติมสต็อกสำเร็จ';
     }
+    else if (action === 'syncErpStock') {
+      response.data = syncErpStock(payload);
+      response.message = 'อัปเดตสต็อกจาก ERP สำเร็จ';
+    }
     else if (action === 'receivePurchaseGoods') {
       response.data = receivePurchaseGoods(payload);
       response.message = 'บันทึกการรับสินค้าเข้าคลังสำเร็จ';
@@ -91,6 +95,10 @@ function doPost(e) {
     else if (action === 'deletePurchaseOrderActive') {
       response.data = deletePurchaseOrderActive(payload);
       response.message = 'ลบรายการสั่งซื้อสำเร็จ';
+    }
+    else if (action === 'editActivePurchaseOrderQuantity') {
+      response.data = editActivePurchaseOrderQuantity(payload);
+      response.message = 'แก้ไขยอดรายการจัดซื้อสำเร็จ';
     }
     else if (action === 'updatePurchaseOrderDraft') {
       response.data = updatePurchaseOrderDraft(payload);
@@ -169,7 +177,7 @@ function doPost(e) {
 
 // ฟังก์ชันสำหรับตรวจเช็คและสร้างชีตอัตโนมัติหากยังไม่มี
 function initDatabase() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
   
   // ตรวจสอบและสร้างชีต Products
   const pSheet = ss.getSheetByName("Products");
@@ -297,7 +305,7 @@ function getAppData() {
 // ฟังก์ชันอ่านข้อมูลจาก Google Sheets และ JSON แยกต่างๆ แล้วนำมารวมกันเป็นก้อนเดียว เซฟลง Drive และคืนค่า
 function rebuildAndSaveAppDataJson(throwError = false) {
   initDatabase();
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
   
   // ดึงข้อมูล Products
   const prodSheet = ss.getSheetByName("Products");
@@ -815,7 +823,7 @@ function saveLotsToJson(lots) {
 }
 
 function initLotsFromJson() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
   const prodSheet = ss.getSheetByName("Products");
   const lots = [];
   if (prodSheet) {
@@ -868,7 +876,7 @@ function saveTransactionsToJson(transactions) {
 }
 
 function migrateTransactionsToJson() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
   const txSheet = ss.getSheetByName("Transactions");
   const txdSheet = ss.getSheetByName("Transaction_Details");
   
@@ -1382,6 +1390,106 @@ function updateSelfProfile(payload) {
 }
 
 // 12. บันทึกการเพิ่มสต็อกสินค้า (Restock) พร้อมอัปเดตสต็อกในชีต Products และสร้าง Lot ใหม่ลง JSON
+function syncErpStock(payload) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (e) {
+    throw new Error("ระบบกำลังทำงานอยู่ กรุณาลองใหม่อีกครั้ง");
+  }
+  
+  try {
+    const db = getFirebaseData("") || {};
+    let products = db.appData?.products || [];
+    let lots = db.lots || [];
+    let transactions = db.transactions || [];
+    
+    const items = payload.items || [];
+    if (items.length === 0) return { updatedCount: 0 };
+    
+    let lastTxId = 0;
+    if (transactions.length > 0) {
+      const lastTx = transactions[transactions.length - 1];
+      lastTxId = parseInt(String(lastTx.id).replace("TX-", "")) || 0;
+    }
+    const nextTxId = "TX-" + String(lastTxId + 1).padStart(6, '0');
+    const nowStr = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss");
+    
+    const txItems = [];
+    let updatedCount = 0;
+    
+    items.forEach(function(it, idx) {
+      const pId = String(it.id).trim();
+      const prod = products.find(function(p) { return String(p.id).trim() === pId; });
+      if (!prod) return;
+      
+      const oldQty = parseFloat(prod.stock_qty) || 0;
+      const newQty = parseFloat(it.newQty) || 0;
+      const diff = newQty - oldQty;
+      
+      prod.stock_qty = newQty;
+      updatedCount++;
+      
+      if (diff !== 0) {
+        const lotId = "LOT-ERP-" + pId + "-" + Date.now() + "-" + idx;
+        if (newQty === 0) {
+          lots.filter(function(l) { return String(l.product_id).trim() === pId; }).forEach(function(l) {
+            l.remaining_qty = 0;
+          });
+        }
+        lots.push({
+          lot_id: lotId,
+          product_id: pId,
+          cost: parseFloat(prod.cost) || 0,
+          price_a: parseFloat(prod.price_a) || 0,
+          price_b: parseFloat(prod.price_b) || 0,
+          price_c: parseFloat(prod.price_c) || 0,
+          initial_qty: diff,
+          remaining_qty: Math.max(0, newQty),
+          created_at: nowStr,
+          note: it.isZeroedFromMissingErp 
+            ? "อัปเดตสต็อก ERP: ไม่พบในไฟล์ ERP (ปรับเป็น 0, เดิม " + oldQty + ")"
+            : "อัปเดตสต็อก ERP (" + oldQty + " -> " + newQty + ")"
+        });
+        
+        txItems.push({
+          lot_id: lotId,
+          product_id: pId,
+          qty: diff,
+          cost: parseFloat(prod.cost) || 0,
+          price: 0
+        });
+      }
+    });
+    
+    if (txItems.length > 0) {
+      transactions.push({
+        id: nextTxId,
+        requester: payload.requester || "สโตร์ (ERP Sync)",
+        department: payload.department || "สโตร์ (ERP Sync)",
+        machine_id: "ERP-SYNC",
+        serial_number: "",
+        total_price: 0,
+        note: payload.note || ("อัปเดตสต็อกจากไฟล์ ERP จำนวน " + txItems.length + " รายการ"),
+        created_at: nowStr,
+        status: "Restock",
+        items: txItems
+      });
+    }
+    
+    const updates = {
+      "appData/products": products,
+      "lots": lots,
+      "transactions": transactions
+    };
+    patchFirebaseData("", updates);
+    
+    return { updatedCount: updatedCount, changedCount: txItems.length, transaction_id: nextTxId };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function restockProduct(payload) {
   const lock = LockService.getScriptLock();
   try {
@@ -1765,6 +1873,117 @@ function deletePurchaseOrderActive(payload) {
   }
 }
 
+// 12.4.3 แก้ไขยอดสั่งซื้อ/ยอดรับเข้าในหน้าตรวจรับสินค้า (สิทธิ์ ADMIN)
+function editActivePurchaseOrderQuantity(payload) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (e) {
+    throw new Error("ระบบไม่ว่างชั่วคราว กรุณาลองใหม่อีกครั้ง");
+  }
+
+  try {
+    const poNum = String(payload.poNumber || '').trim();
+    const prodId = String(payload.productId || '').trim();
+    
+    let purchaseOrders = getFirebaseData("appData/purchaseOrders") || [];
+    let products = getFirebaseData("appData/products") || [];
+    let lots = getFirebaseData("lots") || [];
+    let transactions = getFirebaseData("transactions") || [];
+
+    let poIndex = -1;
+    for (let i = 0; i < purchaseOrders.length; i++) {
+      const o = purchaseOrders[i];
+      if (String(o.poNumber).trim() === poNum && (!prodId || String(o.productId).trim() === prodId)) {
+        poIndex = i;
+        break;
+      }
+    }
+    if (poIndex === -1) throw new Error("ไม่พบรายการใบสั่งซื้อ " + poNum);
+
+    const po = purchaseOrders[poIndex];
+    const oldOrdered = parseFloat(po.orderedQty) || 0;
+    const oldReceived = parseFloat(po.receivedQty) || 0;
+
+    const newOrdered = payload.orderedQty !== undefined ? (parseFloat(payload.orderedQty) || 0) : oldOrdered;
+    const newReceived = payload.receivedQty !== undefined ? (parseFloat(payload.receivedQty) || 0) : oldReceived;
+
+    if (newOrdered <= 0) throw new Error("จำนวนที่สั่งต้องมากกว่า 0");
+    if (newReceived < 0) throw new Error("จำนวนที่รับต้องไม่ต่ำกว่า 0");
+    if (newReceived > newOrdered) {
+      throw new Error("จำนวนที่รับ (" + newReceived + ") ไม่สามารถมากกว่าจำนวนที่สั่ง (" + newOrdered + ") ได้");
+    }
+
+    const unitCost = parseFloat(po.unitCost) || 0;
+    po.orderedQty = newOrdered;
+    po.receivedQty = newReceived;
+    po.totalCost = newOrdered * unitCost;
+
+    if (newReceived >= newOrdered) {
+      po.status = "ได้รับครบ";
+    } else if (newReceived > 0) {
+      po.status = "ค้างส่ง";
+    } else {
+      po.status = "สั่งแล้ว";
+    }
+
+    if (newReceived > 0 && !po.lastReceivedDate) {
+      po.lastReceivedDate = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
+    }
+
+    const recDiff = newReceived - oldReceived;
+    if (recDiff !== 0) {
+      for (let i = 0; i < products.length; i++) {
+        if (String(products[i].id).trim() === String(po.productId).trim()) {
+          products[i].stock_qty = Math.max(0, (parseFloat(products[i].stock_qty) || 0) + recDiff);
+          break;
+        }
+      }
+      for (let i = 0; i < lots.length; i++) {
+        if (lots[i].product_id === po.productId && lots[i].note && (lots[i].note.indexOf(poNum) !== -1)) {
+          lots[i].remaining_qty = Math.max(0, (parseFloat(lots[i].remaining_qty) || 0) + recDiff);
+          lots[i].initial_qty = Math.max(0, (parseFloat(lots[i].initial_qty) || 0) + recDiff);
+          break;
+        }
+      }
+      let lastTxId = 0;
+      if (transactions.length > 0) {
+        const lastTx = transactions[transactions.length - 1];
+        lastTxId = parseInt(String(lastTx.id).replace("TX-", "")) || 0;
+      }
+      const nextTxId = "TX-" + String(lastTxId + 1).padStart(6, '0');
+      transactions.push({
+        id: nextTxId,
+        requester: payload.requester || "ผู้ดูแลระบบ (Admin)",
+        department: payload.department || "ผู้ดูแลระบบ",
+        machine_id: "PO_ADJUST",
+        serial_number: "",
+        total_price: 0,
+        note: "แก้ไขยอดรับสินค้า PO " + poNum + " (" + (recDiff > 0 ? '+' : '') + recDiff + ")",
+        created_at: Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"),
+        status: recDiff > 0 ? "Restock" : "Adjustment",
+        items: [{
+          lot_id: "",
+          product_id: po.productId,
+          qty: Math.abs(recDiff),
+          cost: unitCost,
+          price: 0
+        }]
+      });
+
+      setFirebaseData("appData/products", products);
+      setFirebaseData("lots", lots);
+      setFirebaseData("transactions", transactions);
+    }
+
+    setFirebaseData("appData/purchaseOrders", purchaseOrders);
+
+    return { poNumber: poNum, orderedQty: newOrdered, receivedQty: newReceived, status: po.status };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // 12.5 อัปเดตข้อมูลใบสั่งซื้อในหน้าจัดการคำสั่งซื้อ
 function updatePurchaseOrderDraft(payload) {
   const lock = LockService.getScriptLock();
@@ -2083,7 +2302,7 @@ function backupFirebaseToDrive(payload) {
 function backupFirebaseToSheets(payload) {
   const targets = (payload && payload.targets) ? payload.targets : ['products', 'machines', 'mappings', 'settings', 'manuals', 'lots', 'purchaseOrders', 'transactions', 'users'];
   const isSelected = (name) => targets.indexOf(name) !== -1;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
   
   // 1. Products Sheet
   if (isSelected('products')) {
@@ -2361,6 +2580,8 @@ function showSelectionDialog(title, callbackFunctionName, description) {
   </div>
 
   <script>
+    const callbackName = '${callbackFunctionName}';
+
     function submit() {
       const btn = document.getElementById('submitBtn');
       const text = document.getElementById('btnText');
@@ -2384,7 +2605,7 @@ function showSelectionDialog(title, callbackFunctionName, description) {
         return;
       }
       
-      google.script.run
+      const runner = google.script.run
         .withSuccessHandler(function() {
           google.script.host.close();
         })
@@ -2393,8 +2614,17 @@ function showSelectionDialog(title, callbackFunctionName, description) {
           btn.disabled = false;
           btn.classList.remove('opacity-50', 'cursor-not-allowed');
           text.innerText = 'ยืนยัน';
-        })
-        [callbackFunctionName](selected);
+        });
+
+      if (callbackName === 'runUploadSheetsToFirebase') {
+        runner.runUploadSheetsToFirebase(selected);
+      } else if (callbackName === 'runUploadJsonToFirebase') {
+        runner.runUploadJsonToFirebase(selected);
+      } else if (callbackName === 'runBackupFirebaseToSheets') {
+        runner.runBackupFirebaseToSheets(selected);
+      } else if (callbackName === 'runBackupFirebaseToDrive') {
+        runner.runBackupFirebaseToDrive(selected);
+      }
     }
   </script>
 </body>
@@ -2406,19 +2636,50 @@ function showSelectionDialog(title, callbackFunctionName, description) {
   SpreadsheetApp.getUi().showModalDialog(htmlOutput, title);
 }
 
+function getFirebaseWriteRequest(path, data) {
+  if (!FIREBASE_URL || FIREBASE_URL === "") {
+    throw new Error("FIREBASE_URL is not configured.");
+  }
+  let baseUrl = FIREBASE_URL;
+  if (baseUrl.charAt(baseUrl.length - 1) !== '/') {
+    baseUrl += '/';
+  }
+  const url = baseUrl + path + ".json" + (FIREBASE_SECRET ? "?auth=" + FIREBASE_SECRET : "");
+  return {
+    url: url,
+    method: "put",
+    contentType: "application/json",
+    payload: JSON.stringify(data),
+    muteHttpExceptions: true
+  };
+}
+
 function runUploadSheetsToFirebase(targets) {
   const ui = SpreadsheetApp.getUi();
   const isSelected = (name) => targets.indexOf(name) !== -1;
   
   try {
     initDatabase();
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    // ประกาศตัวแปรเพื่อป้องกัน ReferenceError ในการเรียกใช้งานภายหลัง
+    let products = null;
+    let machines = null;
+    let settings = null;
+    let manuals = null;
+    let purchaseOrders = null;
+    let transactions = null;
+    let mappings = null;
+    let lots = null;
+    let users = null;
+    
+    const firebaseRequests = [];
     
     // 1. อ่าน Products
     if (isSelected('products')) {
       const prodSheet = ss.getSheetByName("Products");
       const prodData = prodSheet.getDataRange().getValues();
-      const products = [];
+      products = [];
       if (prodData.length > 1) {
         for (let i = 1; i < prodData.length; i++) {
           let r = prodData[i];
@@ -2431,14 +2692,14 @@ function runUploadSheetsToFirebase(targets) {
           });
         }
       }
-      setFirebaseData("appData/products", products);
+      firebaseRequests.push(getFirebaseWriteRequest("appData/products", products));
     }
     
     // 2. อ่าน Machines
     if (isSelected('machines')) {
       const machSheet = ss.getSheetByName("Machines");
       const machData = machSheet.getDataRange().getValues();
-      const machines = [];
+      machines = [];
       if (machData.length > 1) {
         for (let i = 1; i < machData.length; i++) {
           let r = machData[i];
@@ -2449,13 +2710,13 @@ function runUploadSheetsToFirebase(targets) {
           });
         }
       }
-      setFirebaseData("appData/machines", machines);
+      firebaseRequests.push(getFirebaseWriteRequest("appData/machines", machines));
     }
     
     // 3. อ่าน Settings
     if (isSelected('settings')) {
       const settingsSheet = ss.getSheetByName("Settings");
-      const settings = { isShowPriceBForGuest: false, isShowPriceCForGuest: false };
+      settings = { isShowPriceBForGuest: false, isShowPriceCForGuest: false };
       if (settingsSheet) {
         const settingsData = settingsSheet.getDataRange().getValues();
         if (settingsData.length > 1) {
@@ -2467,13 +2728,13 @@ function runUploadSheetsToFirebase(targets) {
           }
         }
       }
-      setFirebaseData("appData/settings", settings);
+      firebaseRequests.push(getFirebaseWriteRequest("appData/settings", settings));
     }
     
     // 4. อ่าน Manuals
     if (isSelected('manuals')) {
       const manSheet = ss.getSheetByName("Manuals");
-      const manuals = [];
+      manuals = [];
       if (manSheet) {
         const manData = manSheet.getDataRange().getValues();
         if (manData.length > 1) {
@@ -2485,13 +2746,13 @@ function runUploadSheetsToFirebase(targets) {
           }
         }
       }
-      setFirebaseData("appData/manuals", manuals);
+      firebaseRequests.push(getFirebaseWriteRequest("appData/manuals", manuals));
     }
     
     // 5. อ่าน PurchaseOrders
     if (isSelected('purchaseOrders')) {
       const poSheet = ss.getSheetByName("PurchaseOrders");
-      const purchaseOrders = [];
+      purchaseOrders = [];
       if (poSheet) {
         const poData = poSheet.getDataRange().getValues();
         if (poData.length > 1) {
@@ -2508,7 +2769,7 @@ function runUploadSheetsToFirebase(targets) {
           }
         }
       }
-      setFirebaseData("appData/purchaseOrders", purchaseOrders);
+      firebaseRequests.push(getFirebaseWriteRequest("appData/purchaseOrders", purchaseOrders));
     }
     
     // 6. อ่าน Transactions จาก Sheet
@@ -2516,7 +2777,7 @@ function runUploadSheetsToFirebase(targets) {
       const txSheet = ss.getSheetByName("Transactions");
       if (txSheet) {
         const txData = txSheet.getDataRange().getValues();
-        const transactions = [];
+        transactions = [];
         if (txData.length > 1) {
           for (let i = 1; i < txData.length; i++) {
             let items = [];
@@ -2529,9 +2790,9 @@ function runUploadSheetsToFirebase(targets) {
               created_at: String(txData[i][7]), status: txData[i][8], items: items
             });
           }
-          setFirebaseData("transactions", transactions);
         }
       }
+      firebaseRequests.push(getFirebaseWriteRequest("transactions", transactions));
     }
 
     // 7. อ่าน Mappings จาก Sheet
@@ -2539,7 +2800,7 @@ function runUploadSheetsToFirebase(targets) {
       const mapSheet = ss.getSheetByName("Mappings");
       if (mapSheet) {
         const mapData = mapSheet.getDataRange().getValues();
-        const mappings = [];
+        mappings = [];
         if (mapData.length > 1) {
           for (let i = 1; i < mapData.length; i++) {
             mappings.push({
@@ -2547,9 +2808,9 @@ function runUploadSheetsToFirebase(targets) {
               machine_id: String(mapData[i][1]).trim()
             });
           }
-          setFirebaseData("mappings", mappings);
         }
       }
+      firebaseRequests.push(getFirebaseWriteRequest("mappings", mappings));
     }
 
     // 8. อ่าน Lots จาก Sheet
@@ -2557,7 +2818,7 @@ function runUploadSheetsToFirebase(targets) {
       const lotsSheet = ss.getSheetByName("Lots");
       if (lotsSheet) {
         const lotsData = lotsSheet.getDataRange().getValues();
-        const lots = [];
+        lots = [];
         if (lotsData.length > 1) {
           for (let i = 1; i < lotsData.length; i++) {
             lots.push({
@@ -2573,9 +2834,9 @@ function runUploadSheetsToFirebase(targets) {
               note: String(lotsData[i][9])
             });
           }
-          setFirebaseData("lots", lots);
         }
       }
+      firebaseRequests.push(getFirebaseWriteRequest("lots", lots));
     }
 
     // 9. อ่าน Users จาก Sheet
@@ -2583,7 +2844,7 @@ function runUploadSheetsToFirebase(targets) {
       const usersSheet = ss.getSheetByName("Users");
       if (usersSheet) {
         const usersData = usersSheet.getDataRange().getValues();
-        const users = [];
+        users = [];
         if (usersData.length > 1) {
           for (let i = 1; i < usersData.length; i++) {
             users.push({
@@ -2597,8 +2858,72 @@ function runUploadSheetsToFirebase(targets) {
               userType: String(usersData[i][7]).trim() || "insource"
             });
           }
-          setFirebaseData("users", users);
         }
+      }
+      firebaseRequests.push(getFirebaseWriteRequest("users", users));
+    }
+
+    // ยิงคำขอเขียนลง Firebase พร้อมกันทั้งหมดในรอบเดียวแบบขนาน
+    if (firebaseRequests.length > 0) {
+      const responses = UrlFetchApp.fetchAll(firebaseRequests);
+      for (let i = 0; i < responses.length; i++) {
+        if (responses[i].getResponseCode() !== 200) {
+          throw new Error("Failed to write to Firebase: " + responses[i].getContentText());
+        }
+      }
+      
+      // อัปเดตไฟล์ JSON บน Google Drive ในคราวเดียว
+      const folder = DriveApp.getFolderById(JSON_FOLDER_ID);
+      const appDataKeys = ['products', 'machines', 'mappings', 'settings', 'manuals', 'lots', 'purchaseOrders'];
+      const hasAppDataUpdate = targets.some(t => appDataKeys.includes(t));
+      
+      if (hasAppDataUpdate) {
+        const appDataFiles = folder.getFilesByName("app_data.json");
+        let existingAppData = {};
+        let appDataFile = null;
+        if (appDataFiles.hasNext()) {
+          appDataFile = appDataFiles.next();
+          try {
+            existingAppData = JSON.parse(appDataFile.getBlob().getDataAsString()) || {};
+          } catch(e) {}
+        }
+        
+        if (isSelected('products')) existingAppData.products = products;
+        if (isSelected('machines')) existingAppData.machines = machines;
+        if (isSelected('mappings')) existingAppData.mappings = mappings;
+        if (isSelected('settings')) existingAppData.settings = settings;
+        if (isSelected('manuals')) existingAppData.manuals = manuals;
+        if (isSelected('lots')) existingAppData.lots = lots;
+        if (isSelected('purchaseOrders')) existingAppData.purchaseOrders = purchaseOrders;
+        
+        const appDataContent = JSON.stringify(existingAppData);
+        if (appDataFile) {
+          appDataFile.setContent(appDataContent);
+        } else {
+          folder.createFile("app_data.json", appDataContent, MimeType.PLAIN_TEXT);
+        }
+      }
+      
+      // อัปเดตแยกไฟล์เฉพาะกิจบน Drive
+      if (isSelected('lots')) {
+        const lotsFiles = folder.getFilesByName("lots.json");
+        if (lotsFiles.hasNext()) lotsFiles.next().setContent(JSON.stringify(lots));
+        else folder.createFile("lots.json", JSON.stringify(lots), MimeType.PLAIN_TEXT);
+      }
+      if (isSelected('mappings')) {
+        const mapFiles = folder.getFilesByName("mappings.json");
+        if (mapFiles.hasNext()) mapFiles.next().setContent(JSON.stringify(mappings));
+        else folder.createFile("mappings.json", JSON.stringify(mappings), MimeType.PLAIN_TEXT);
+      }
+      if (isSelected('transactions')) {
+        const txFiles = folder.getFilesByName("transactions.json");
+        if (txFiles.hasNext()) txFiles.next().setContent(JSON.stringify(transactions));
+        else folder.createFile("transactions.json", JSON.stringify(transactions), MimeType.PLAIN_TEXT);
+      }
+      if (isSelected('users')) {
+        const userFiles = folder.getFilesByName("users.json");
+        if (userFiles.hasNext()) userFiles.next().setContent(JSON.stringify(users));
+        else folder.createFile("users.json", JSON.stringify(users), MimeType.PLAIN_TEXT);
       }
     }
 
@@ -2613,20 +2938,22 @@ function runUploadJsonToFirebase(targets) {
   const isSelected = (name) => targets.indexOf(name) !== -1;
   
   try {
+    initDatabase();
     const folder = DriveApp.getFolderById(JSON_FOLDER_ID);
+    const firebaseRequests = [];
     
     // 1. อัปโหลด app_data.json
     const appDataFiles = folder.getFilesByName("app_data.json");
     if (appDataFiles.hasNext()) {
       const appData = JSON.parse(appDataFiles.next().getBlob().getDataAsString());
       if (appData) {
-        if (isSelected('products')) setFirebaseData("appData/products", appData.products || []);
-        if (isSelected('machines')) setFirebaseData("appData/machines", appData.machines || []);
-        if (isSelected('mappings')) setFirebaseData("mappings", appData.mappings || []);
-        if (isSelected('settings')) setFirebaseData("appData/settings", appData.settings || {});
-        if (isSelected('manuals')) setFirebaseData("appData/manuals", appData.manuals || []);
-        if (isSelected('lots')) setFirebaseData("lots", appData.lots || []);
-        if (isSelected('purchaseOrders')) setFirebaseData("appData/purchaseOrders", appData.purchaseOrders || []);
+        if (isSelected('products')) firebaseRequests.push(getFirebaseWriteRequest("appData/products", appData.products || []));
+        if (isSelected('machines')) firebaseRequests.push(getFirebaseWriteRequest("appData/machines", appData.machines || []));
+        if (isSelected('mappings')) firebaseRequests.push(getFirebaseWriteRequest("mappings", appData.mappings || []));
+        if (isSelected('settings')) firebaseRequests.push(getFirebaseWriteRequest("appData/settings", appData.settings || {}));
+        if (isSelected('manuals')) firebaseRequests.push(getFirebaseWriteRequest("appData/manuals", appData.manuals || []));
+        if (isSelected('lots')) firebaseRequests.push(getFirebaseWriteRequest("lots", appData.lots || []));
+        if (isSelected('purchaseOrders')) firebaseRequests.push(getFirebaseWriteRequest("appData/purchaseOrders", appData.purchaseOrders || []));
       }
     }
     
@@ -2635,7 +2962,7 @@ function runUploadJsonToFirebase(targets) {
       const txFiles = folder.getFilesByName("transactions.json");
       if (txFiles.hasNext()) {
         const transactions = JSON.parse(txFiles.next().getBlob().getDataAsString());
-        if (transactions) setFirebaseData("transactions", transactions);
+        if (transactions) firebaseRequests.push(getFirebaseWriteRequest("transactions", transactions));
       }
     }
     
@@ -2644,7 +2971,17 @@ function runUploadJsonToFirebase(targets) {
       const userFiles = folder.getFilesByName("users.json");
       if (userFiles.hasNext()) {
         const users = JSON.parse(userFiles.next().getBlob().getDataAsString());
-        if (users) setFirebaseData("users", users);
+        if (users) firebaseRequests.push(getFirebaseWriteRequest("users", users));
+      }
+    }
+    
+    // ส่งข้อมูลไป Firebase แบบขนาน
+    if (firebaseRequests.length > 0) {
+      const responses = UrlFetchApp.fetchAll(firebaseRequests);
+      for (let i = 0; i < responses.length; i++) {
+        if (responses[i].getResponseCode() !== 200) {
+          throw new Error("Failed to write to Firebase: " + responses[i].getContentText());
+        }
       }
     }
     
@@ -2677,6 +3014,18 @@ function runBackupFirebaseToDrive(targets) {
 function syncProductsWithMIS() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // ดึงข้อมูลล่าสุดจาก Firebase กลับมาอัปเดตลง Google Sheets และ Drive JSON ก่อน เพื่อป้องกันการเขียนทับข้อมูลใหม่ด้วยข้อมูลเก่า
+  try {
+    backupFirebaseToSheets({ targets: ['products', 'machines', 'settings', 'manuals', 'purchaseOrders'] });
+    backupFirebaseToDrive({ targets: ['mappings', 'lots'] });
+  } catch (err) {
+    Logger.log("ดึงข้อมูลจาก Firebase ก่อนซิงค์ MIS ไม่สำเร็จ: " + err.toString());
+    const response = ui.alert('⚠️ คำเตือน', 'ไม่สามารถดึงข้อมูลล่าสุดจาก Firebase ได้ก่อนการซิงค์ (อาจเป็นเพราะปัญหาการเชื่อมต่อ)\n\nต้องการดำเนินการซิงค์ต่อโดยใช้ข้อมูลที่มีอยู่ในปัจจุบันบน Google Sheets หรือไม่? (คำเตือน: ข้อมูลที่มีการแก้ไขล่าสุดบนระบบเว็บ/Firebase อาจถูกเขียนทับด้วยข้อมูลเดิมใน Google Sheets)', ui.ButtonSet.YES_NO);
+    if (response === ui.Button.NO) {
+      return;
+    }
+  }
   
   const prodSheet = ss.getSheetByName("Products");
   let misSheet = ss.getSheetByName("ตั้งค่า MIS") || ss.getSheetByName("คับค่า MIS") || ss.getSheetByName("คลังค่า MIS");
@@ -2840,14 +3189,27 @@ function showSidebarControlPanel() {
 
   <script>
     function run(functionName) {
-      google.script.run
+      const runner = google.script.run
         .withSuccessHandler(function() {
           // สำเร็จ
         })
         .withFailureHandler(function(err) {
           alert('เกิดข้อผิดพลาด: ' + err.toString());
-        })
-        [functionName]();
+        });
+
+      if (functionName === 'menuSyncToWebsite') {
+        runner.menuSyncToWebsite();
+      } else if (functionName === 'syncProductsWithMIS') {
+        runner.syncProductsWithMIS();
+      } else if (functionName === 'menuUploadSheetsToFirebaseSelectable') {
+        runner.menuUploadSheetsToFirebaseSelectable();
+      } else if (functionName === 'menuBackupFirebaseToSheetsSelectable') {
+        runner.menuBackupFirebaseToSheetsSelectable();
+      } else if (functionName === 'menuBackupFirebaseToDriveSelectable') {
+        runner.menuBackupFirebaseToDriveSelectable();
+      } else if (functionName === 'menuUploadJsonToFirebaseSelectable') {
+        runner.menuUploadJsonToFirebaseSelectable();
+      }
     }
   </script>
 </body>
